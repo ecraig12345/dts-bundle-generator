@@ -20,9 +20,11 @@ const testSchema: SchemeDescriptor<TestInterface> = {
 	requiredBooleanProp: schemaPrimitiveValues.requiredBoolean,
 	stringProp: schemaPrimitiveValues.string,
 	requiredStringProp: schemaPrimitiveValues.requiredString,
-	testArray: [{
-		foo: schemaPrimitiveValues.requiredString,
-	}],
+	testArray: [
+		{
+			foo: schemaPrimitiveValues.requiredString,
+		},
+	],
 	stringArray: [schemaPrimitiveValues.string],
 };
 
@@ -111,10 +113,7 @@ describe('checkSchemaMatch', () => {
 			requiredBooleanProp: false,
 			requiredStringProp: 'test',
 			stringArray: ['string1', 'string2'],
-			testArray: [
-				{ foo: '3' },
-				{ foo: '2' },
-			],
+			testArray: [{ foo: '3' }, { foo: '2' }],
 		};
 
 		const errors: string[] = [];
@@ -136,11 +135,7 @@ describe('checkSchemaMatch', () => {
 		const obj = {
 			requiredBooleanProp: false,
 			requiredStringProp: 'test',
-			testArray: [
-				{ bar: '3' },
-				{ foo: '2' },
-				{ check: 123 },
-			],
+			testArray: [{ bar: '3' }, { foo: '2' }, { check: 123 }],
 		};
 
 		const errors: string[] = [];

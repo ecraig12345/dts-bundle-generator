@@ -17,7 +17,12 @@ const namedDeclarationKinds = [
 	ts.SyntaxKind.BindingElement,
 ];
 
-export type NodeName = ts.DeclarationName | ts.DefaultKeyword | ts.QualifiedName | ts.PropertyAccessExpression | ts.BindingPattern;
+export type NodeName =
+	| ts.DeclarationName
+	| ts.DefaultKeyword
+	| ts.QualifiedName
+	| ts.PropertyAccessExpression
+	| ts.BindingPattern;
 
 export function isNodeNamedDeclaration(node: ts.Node): node is ts.NamedDeclaration {
 	return namedDeclarationKinds.indexOf(node.kind) !== -1;
@@ -106,7 +111,9 @@ function isGlobalScopeAugmentation(module: ts.ModuleDeclaration): boolean {
  * @see https://github.com/Microsoft/TypeScript/blob/f7c4fefeb62416c311077a699cc15beb211c25c9/src/compiler/utilities.ts#L588-L590
  */
 export function isAmbientModule(node: ts.Node): boolean {
-	return ts.isModuleDeclaration(node) && (node.name.kind === ts.SyntaxKind.StringLiteral || isGlobalScopeAugmentation(node));
+	return (
+		ts.isModuleDeclaration(node) && (node.name.kind === ts.SyntaxKind.StringLiteral || isGlobalScopeAugmentation(node))
+	);
 }
 
 /**
@@ -172,9 +179,12 @@ export function getExportsForSourceFile(typeChecker: ts.TypeChecker, sourceFileS
 		}
 	}
 
-	const result = typeChecker
-		.getExportsOfModule(sourceFileSymbol)
-		.map<SourceFileExport>((symbol: ts.Symbol) => ({ symbol, originalSymbol: symbol, exportedName: symbol.name, type: ExportType.ES6Named }));
+	const result = typeChecker.getExportsOfModule(sourceFileSymbol).map<SourceFileExport>((symbol: ts.Symbol) => ({
+		symbol,
+		originalSymbol: symbol,
+		exportedName: symbol.name,
+		type: ExportType.ES6Named,
+	}));
 
 	if (sourceFileSymbol.exports !== undefined) {
 		const defaultExportSymbol = sourceFileSymbol.exports.get(ts.InternalSymbolName.Default);
@@ -206,13 +216,17 @@ export function getExportsForSourceFile(typeChecker: ts.TypeChecker, sourceFileS
 			// most likely this export is part of the symbol merging situation
 			// where one of the declarations is the imported value but the other is declared locally
 			// in this case we need to add an extra export to the exports list to make sure that it is marked as "exported"
-			// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-			const referencedModule = resolveReferencedModule(importSpecifierDeclaration.parent.parent.parent as ts.ImportDeclaration, typeChecker);
+			const referencedModule = resolveReferencedModule(
+				importSpecifierDeclaration.parent.parent.parent as ts.ImportDeclaration,
+				typeChecker
+			);
 			if (referencedModule !== null) {
 				const referencedModuleSymbol = getNodeSymbol(referencedModule, typeChecker);
 				if (referencedModuleSymbol !== null) {
 					const importedName = (importSpecifierDeclaration.propertyName ?? importSpecifierDeclaration.name).getText();
-					const exportedItemSymbol = typeChecker.getExportsOfModule(referencedModuleSymbol).find((exportSymbol: ts.Symbol) => exportSymbol.getName() === importedName);
+					const exportedItemSymbol = typeChecker
+						.getExportsOfModule(referencedModuleSymbol)
+						.find((exportSymbol: ts.Symbol) => exportSymbol.getName() === importedName);
 					if (exportedItemSymbol !== undefined) {
 						symbolsMergingResolvedExports.push({
 							...exp,
@@ -227,7 +241,10 @@ export function getExportsForSourceFile(typeChecker: ts.TypeChecker, sourceFileS
 	return [...result, ...symbolsMergingResolvedExports];
 }
 
-export function resolveIdentifier(typeChecker: ts.TypeChecker, identifier: ts.Identifier): ts.NamedDeclaration | undefined {
+export function resolveIdentifier(
+	typeChecker: ts.TypeChecker,
+	identifier: ts.Identifier
+): ts.NamedDeclaration | undefined {
 	const symbol = getDeclarationNameSymbol(identifier, typeChecker);
 	if (symbol === null) {
 		return undefined;
@@ -266,11 +283,16 @@ export function getExportsForStatement(
 			statement.declarationList.declarations[0].name
 		);
 
-		const allDeclarationsHaveSameExportType = statement.declarationList.declarations.every((variableDecl: ts.VariableDeclaration) => {
-			// all declaration should have the same export type
-			// TODO: for now it's not supported to have different type of exports
-			return getExportsForName(exportedSymbols, typeChecker, variableDecl.name)[0]?.type === firstDeclarationExports[0]?.type;
-		});
+		const allDeclarationsHaveSameExportType = statement.declarationList.declarations.every(
+			(variableDecl: ts.VariableDeclaration) => {
+				// all declaration should have the same export type
+				// TODO: for now it's not supported to have different type of exports
+				return (
+					getExportsForName(exportedSymbols, typeChecker, variableDecl.name)[0]?.type
+					=== firstDeclarationExports[0]?.type
+				);
+			}
+		);
 
 		if (!allDeclarationsHaveSameExportType) {
 			// log warn?
@@ -314,7 +336,7 @@ const modifiersPriority: Partial<Record<ts.ModifierSyntaxKind, number>> = {
 	[ts.SyntaxKind.ConstKeyword]: 1,
 };
 
-export function modifiersToMap(modifiers: (readonly ts.Modifier[]) | undefined | null): ModifiersMap {
+export function modifiersToMap(modifiers: readonly ts.Modifier[] | undefined | null): ModifiersMap {
 	modifiers = modifiers || [];
 
 	return modifiers.reduce(
@@ -343,7 +365,12 @@ export function modifiersMapToArray(modifiersMap: ModifiersMap): ts.Modifier[] {
 		});
 }
 
-export function recreateRootLevelNodeWithModifiers(node: ts.Node, modifiersMap: ModifiersMap, newName?: string, keepComments: boolean = true): ts.Node {
+export function recreateRootLevelNodeWithModifiers(
+	node: ts.Node,
+	modifiersMap: ModifiersMap,
+	newName?: string,
+	keepComments: boolean = true
+): ts.Node {
 	const newNode = recreateRootLevelNodeWithModifiersImpl(node, modifiersMap, newName);
 
 	if (keepComments) {
@@ -389,19 +416,11 @@ function recreateRootLevelNodeWithModifiersImpl(node: ts.Node, modifiersMap: Mod
 	}
 
 	if (ts.isEnumDeclaration(node)) {
-		return ts.factory.createEnumDeclaration(
-			modifiers,
-			newName || node.name,
-			node.members
-		);
+		return ts.factory.createEnumDeclaration(modifiers, newName || node.name, node.members);
 	}
 
 	if (ts.isExportAssignment(node)) {
-		return ts.factory.createExportAssignment(
-			modifiers,
-			node.isExportEquals,
-			node.expression
-		);
+		return ts.factory.createExportAssignment(modifiers, node.isExportEquals, node.expression);
 	}
 
 	if (ts.isExportDeclaration(node)) {
@@ -477,28 +496,15 @@ function recreateRootLevelNodeWithModifiersImpl(node: ts.Node, modifiersMap: Mod
 	}
 
 	if (ts.isModuleDeclaration(node)) {
-		return ts.factory.createModuleDeclaration(
-			modifiers,
-			node.name,
-			node.body,
-			node.flags
-		);
+		return ts.factory.createModuleDeclaration(modifiers, node.name, node.body, node.flags);
 	}
 
 	if (ts.isTypeAliasDeclaration(node)) {
-		return ts.factory.createTypeAliasDeclaration(
-			modifiers,
-			newName || node.name,
-			node.typeParameters,
-			node.type
-		);
+		return ts.factory.createTypeAliasDeclaration(modifiers, newName || node.name, node.typeParameters, node.type);
 	}
 
 	if (ts.isVariableStatement(node)) {
-		return ts.factory.createVariableStatement(
-			modifiers,
-			node.declarationList
-		);
+		return ts.factory.createVariableStatement(modifiers, node.declarationList);
 	}
 
 	throw new Error(`Unknown top-level node kind (with modifiers): ${ts.SyntaxKind[node.kind]}.
@@ -529,7 +535,9 @@ export function getRootSourceFile(program: ts.Program, rootFileName: string): ts
 export function getNodeOwnSymbol(node: ts.Node, typeChecker: ts.TypeChecker): ts.Symbol {
 	const nodeSymbol = typeChecker.getSymbolAtLocation(node);
 	if (nodeSymbol === undefined) {
-		throw new Error(`Cannot find symbol for node "${node.getText()}" in "${node.parent.getText()}" from "${node.getSourceFile().fileName}"`);
+		throw new Error(
+			`Cannot find symbol for node "${node.getText()}" in "${node.parent.getText()}" from "${node.getSourceFile().fileName}"`
+		);
 	}
 
 	return nodeSymbol;
@@ -579,10 +587,12 @@ export type NodeWithReferencedModule =
 	| ts.ImportDeclaration
 	| ts.ImportEqualsDeclaration
 	| ts.ImportTypeNode
-	| ts.ModuleDeclaration
-;
+	| ts.ModuleDeclaration;
 
-export function resolveReferencedModule(node: NodeWithReferencedModule, typeChecker: ts.TypeChecker): ts.SourceFile | ts.ModuleDeclaration | null {
+export function resolveReferencedModule(
+	node: NodeWithReferencedModule,
+	typeChecker: ts.TypeChecker
+): ts.SourceFile | ts.ModuleDeclaration | null {
 	let moduleName: ts.Expression | ts.LiteralTypeNode | undefined;
 
 	if (ts.isExportDeclaration(node) || ts.isImportDeclaration(node)) {
@@ -616,19 +626,15 @@ export function resolveReferencedModule(node: NodeWithReferencedModule, typeChec
 		: null;
 }
 
-export function getImportModuleName(imp: ts.ImportEqualsDeclaration | ts.ImportDeclaration | ts.ExportDeclaration): string | null {
+export function getImportModuleName(
+	imp: ts.ImportEqualsDeclaration | ts.ImportDeclaration | ts.ExportDeclaration
+): string | null {
 	if (ts.isImportDeclaration(imp)) {
-		return imp.importClause === undefined
-			? null
-			: (imp.moduleSpecifier as ts.StringLiteral).text
-		;
+		return imp.importClause === undefined ? null : (imp.moduleSpecifier as ts.StringLiteral).text;
 	}
 
 	if (ts.isExportDeclaration(imp)) {
-		return imp.moduleSpecifier === undefined
-			? null
-			: (imp.moduleSpecifier as ts.StringLiteral).text
-		;
+		return imp.moduleSpecifier === undefined ? null : (imp.moduleSpecifier as ts.StringLiteral).text;
 	}
 
 	if (ts.isExternalModuleReference(imp.moduleReference)) {
@@ -648,13 +654,15 @@ export function getImportModuleName(imp: ts.ImportEqualsDeclaration | ts.ImportD
  *
  * For example, for given `export { Value }` it returns a declaration of `Value` whatever it is (import statement, interface declaration, etc).
  */
-export function getImportExportReferencedSymbol(importExportSpecifier: ts.ExportSpecifier | ts.ImportSpecifier, typeChecker: ts.TypeChecker): ts.Symbol {
+export function getImportExportReferencedSymbol(
+	importExportSpecifier: ts.ExportSpecifier | ts.ImportSpecifier,
+	typeChecker: ts.TypeChecker
+): ts.Symbol {
 	return importExportSpecifier.propertyName !== undefined
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		? typeChecker.getSymbolAtLocation(importExportSpecifier.propertyName)!
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		: typeChecker.getImmediateAliasedSymbol(typeChecker.getSymbolAtLocation(importExportSpecifier.name)!)!
-	;
+		? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			typeChecker.getSymbolAtLocation(importExportSpecifier.propertyName)!
+		: // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			typeChecker.getImmediateAliasedSymbol(typeChecker.getSymbolAtLocation(importExportSpecifier.name)!)!;
 }
 
 export function getSymbolExportStarDeclarations(symbol: ts.Symbol): ts.ExportDeclaration[] {
@@ -663,10 +671,16 @@ export function getSymbolExportStarDeclarations(symbol: ts.Symbol): ts.ExportDec
 	}
 
 	// this means that an export contains `export * from 'module'` statement
-	return getDeclarationsForSymbol(symbol).filter((decl: ts.Declaration): decl is ts.ExportDeclaration => ts.isExportDeclaration(decl) && decl.moduleSpecifier !== undefined);
+	return getDeclarationsForSymbol(symbol).filter(
+		(decl: ts.Declaration): decl is ts.ExportDeclaration =>
+			ts.isExportDeclaration(decl) && decl.moduleSpecifier !== undefined
+	);
 }
 
-export function getDeclarationsForExportedValues(exp: ts.ExportAssignment | ts.ExportDeclaration, typeChecker: ts.TypeChecker): ts.Declaration[] {
+export function getDeclarationsForExportedValues(
+	exp: ts.ExportAssignment | ts.ExportDeclaration,
+	typeChecker: ts.TypeChecker
+): ts.Declaration[] {
 	const nodeForSymbol = ts.isExportAssignment(exp) ? exp.expression : exp.moduleSpecifier;
 	if (nodeForSymbol === undefined) {
 		return [];
@@ -683,7 +697,12 @@ export function getDeclarationsForExportedValues(exp: ts.ExportAssignment | ts.E
 
 export function resolveGlobalName(typeChecker: ts.TypeChecker, name: string): ts.Symbol | undefined {
 	interface Ts54CompatTypeChecker extends ts.TypeChecker {
-		resolveName(name: string, location: ts.Node | undefined, meaning: ts.SymbolFlags, excludeGlobals: boolean): ts.Symbol | undefined;
+		resolveName(
+			name: string,
+			location: ts.Node | undefined,
+			meaning: ts.SymbolFlags,
+			excludeGlobals: boolean
+		): ts.Symbol | undefined;
 	}
 
 	// this value isn't available in all typescript versions so lets assign its value here instead

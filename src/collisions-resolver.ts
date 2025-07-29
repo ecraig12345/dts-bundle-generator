@@ -45,12 +45,16 @@ export class CollisionsResolver {
 	public addTopLevelIdentifier(identifier: ts.Identifier | ts.DefaultKeyword): string {
 		const symbol = getDeclarationNameSymbol(identifier, this.typeChecker);
 		if (symbol === null) {
-			throw new Error(`Something went wrong - cannot find a symbol for top-level identifier ${identifier.getText()} (from ${identifier.parent.parent.getText()})`);
+			throw new Error(
+				`Something went wrong - cannot find a symbol for top-level identifier ${identifier.getText()} (from ${identifier.parent.parent.getText()})`
+			);
 		}
 
 		const newLocalName = this.registerSymbol(symbol, identifier.getText());
 		if (newLocalName === null) {
-			throw new Error(`Something went wrong - a symbol ${symbol.name} for top-level identifier ${identifier.getText()} cannot be renamed`);
+			throw new Error(
+				`Something went wrong - a symbol ${symbol.name} for top-level identifier ${identifier.getText()} cannot be renamed`
+			);
 		}
 
 		return newLocalName;
@@ -83,7 +87,11 @@ export class CollisionsResolver {
 		// this scope defines where the current identifier is located
 		const currentIdentifierScope = this.getNodeScope(referencedIdentifier);
 
-		if (symbolScopePath.length > 0 && currentIdentifierScope.length > 0 && symbolScopePath[0] === currentIdentifierScope[0]) {
+		if (
+			symbolScopePath.length > 0
+			&& currentIdentifierScope.length > 0
+			&& symbolScopePath[0] === currentIdentifierScope[0]
+		) {
 			// if a referenced symbol is declared in the same scope where it is located
 			// then just return its reference as is without any modification
 			// also note that in this method we're working with identifiers only (i.e. it cannot be a qualified name)
@@ -97,7 +105,8 @@ export class CollisionsResolver {
 			return null;
 		}
 
-		let topLevelName = symbolScopePath.length === 0 ? referencedIdentifier.getText() : topLevelIdentifierSymbol.getName();
+		let topLevelName =
+			symbolScopePath.length === 0 ? referencedIdentifier.getText() : topLevelIdentifierSymbol.getName();
 		if (!namesForTopLevelSymbol.has(topLevelName)) {
 			// if the set of already registered names does not contain the one that is requested
 
@@ -131,14 +140,21 @@ export class CollisionsResolver {
 	 * Similar to {@link resolveReferencedIdentifier}, but works with qualified names (Ns.Ns1.Interface).
 	 * The main point of this resolver is that it might change the first part of the qualifier only (as it drives uniqueness of a name).
 	 */
-	public resolveReferencedQualifiedName(referencedIdentifier: ts.QualifiedName | ts.PropertyAccessEntityNameExpression): string | null {
-		let topLevelIdentifier: ts.Identifier | ts.QualifiedName | ts.PropertyAccessEntityNameExpression = referencedIdentifier;
+	public resolveReferencedQualifiedName(
+		referencedIdentifier: ts.QualifiedName | ts.PropertyAccessEntityNameExpression
+	): string | null {
+		let topLevelIdentifier: ts.Identifier | ts.QualifiedName | ts.PropertyAccessEntityNameExpression =
+			referencedIdentifier;
 
 		if (ts.isQualifiedName(topLevelIdentifier) || ts.isPropertyAccessExpression(topLevelIdentifier)) {
-			let leftmostIdentifier = ts.isQualifiedName(topLevelIdentifier) ? topLevelIdentifier.left : topLevelIdentifier.expression;
+			let leftmostIdentifier = ts.isQualifiedName(topLevelIdentifier)
+				? topLevelIdentifier.left
+				: topLevelIdentifier.expression;
 
 			while (ts.isQualifiedName(leftmostIdentifier) || ts.isPropertyAccessExpression(leftmostIdentifier)) {
-				leftmostIdentifier = ts.isQualifiedName(leftmostIdentifier) ? leftmostIdentifier.left : leftmostIdentifier.expression;
+				leftmostIdentifier = ts.isQualifiedName(leftmostIdentifier)
+					? leftmostIdentifier.left
+					: leftmostIdentifier.expression;
 			}
 
 			topLevelIdentifier = leftmostIdentifier;
@@ -220,11 +236,16 @@ export class CollisionsResolver {
 	private registerSymbol(identifierSymbol: ts.Symbol, preferredName: string): string | null {
 		if (!renamingSupportedSymbols.some((flag: ts.SymbolFlags) => identifierSymbol.flags & flag)) {
 			// if a symbol for something else that we don't support yet - skip
-			verboseLog(`Symbol ${identifierSymbol.name} cannot be renamed because its flag (${identifierSymbol.flags}) isn't supported`);
+			verboseLog(
+				`Symbol ${identifierSymbol.name} cannot be renamed because its flag (${identifierSymbol.flags}) isn't supported`
+			);
 			return null;
 		}
 
-		if (identifierSymbol.flags & ts.SymbolFlags.NamespaceModule && identifierSymbol.escapedName === ts.InternalSymbolName.Global) {
+		if (
+			identifierSymbol.flags & ts.SymbolFlags.NamespaceModule
+			&& identifierSymbol.escapedName === ts.InternalSymbolName.Global
+		) {
 			// no need to rename `declare global` namespaces
 			return null;
 		}

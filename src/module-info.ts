@@ -2,10 +2,7 @@ import * as path from 'path';
 
 import * as ts from 'typescript';
 
-import {
-	getLibraryName,
-	getTypesLibraryName,
-} from './helpers/node-modules';
+import { getLibraryName, getTypesLibraryName } from './helpers/node-modules';
 
 import { fixPath } from './helpers/fix-path';
 import { NodeWithReferencedModule, resolveReferencedModule } from './helpers/typescript';
@@ -55,7 +52,11 @@ export function getFileModuleInfo(fileName: string, criteria: ModuleCriteria): M
 	return getModuleInfoImpl(fileName, fileName, criteria);
 }
 
-export function getReferencedModuleInfo(moduleDecl: NodeWithReferencedModule, criteria: ModuleCriteria, typeChecker: ts.TypeChecker): ModuleInfo | null {
+export function getReferencedModuleInfo(
+	moduleDecl: NodeWithReferencedModule,
+	criteria: ModuleCriteria,
+	typeChecker: ts.TypeChecker
+): ModuleInfo | null {
 	const referencedModule = resolveReferencedModule(moduleDecl, typeChecker);
 	if (referencedModule === null) {
 		return null;
@@ -68,8 +69,14 @@ export function getReferencedModuleInfo(moduleDecl: NodeWithReferencedModule, cr
 	return getFileModuleInfo(moduleFilePath, criteria);
 }
 
-export function getModuleLikeModuleInfo(moduleLike: ts.SourceFile | ts.ModuleDeclaration, criteria: ModuleCriteria, typeChecker: ts.TypeChecker): ModuleInfo {
-	const resolvedModuleLike = ts.isSourceFile(moduleLike) ? moduleLike : resolveReferencedModule(moduleLike, typeChecker) ?? moduleLike;
+export function getModuleLikeModuleInfo(
+	moduleLike: ts.SourceFile | ts.ModuleDeclaration,
+	criteria: ModuleCriteria,
+	typeChecker: ts.TypeChecker
+): ModuleInfo {
+	const resolvedModuleLike = ts.isSourceFile(moduleLike)
+		? moduleLike
+		: (resolveReferencedModule(moduleLike, typeChecker) ?? moduleLike);
 
 	const fileName = ts.isSourceFile(resolvedModuleLike)
 		? resolvedModuleLike.fileName
@@ -79,7 +86,9 @@ export function getModuleLikeModuleInfo(moduleLike: ts.SourceFile | ts.ModuleDec
 }
 
 function resolveModuleFileName(currentFileName: string, moduleName: string): string {
-	return moduleName.startsWith('.') ? fixPath(path.join(currentFileName, '..', moduleName)) : `node_modules/${moduleName}/`;
+	return moduleName.startsWith('.')
+		? fixPath(path.join(currentFileName, '..', moduleName))
+		: `node_modules/${moduleName}/`;
 }
 
 /**
@@ -109,19 +118,38 @@ function getModuleInfoImpl(currentFilePath: string, originalFileName: string, cr
 		return { type: ModuleType.ShouldBeInlined, fileName: originalFileName, isExternal: true };
 	}
 
-	if (shouldLibraryBeImported(npmLibraryName, typesLibraryName, criteria.importedLibraries, criteria.allowedTypesLibraries)) {
+	if (
+		shouldLibraryBeImported(
+			npmLibraryName,
+			typesLibraryName,
+			criteria.importedLibraries,
+			criteria.allowedTypesLibraries
+		)
+	) {
 		return { type: ModuleType.ShouldBeImported, fileName: originalFileName, isExternal: true };
 	}
 
 	if (typesLibraryName !== null && isLibraryAllowed(typesLibraryName, criteria.allowedTypesLibraries)) {
-		return { type: ModuleType.ShouldBeReferencedAsTypes, fileName: originalFileName, typesLibraryName, isExternal: true };
+		return {
+			type: ModuleType.ShouldBeReferencedAsTypes,
+			fileName: originalFileName,
+			typesLibraryName,
+			isExternal: true,
+		};
 	}
 
 	return { type: ModuleType.ShouldBeUsedForModulesOnly, fileName: originalFileName, isExternal: true };
 }
 
-function shouldLibraryBeInlined(npmLibraryName: string, typesLibraryName: string | null, inlinedLibraries: string[]): boolean {
-	return isLibraryAllowed(npmLibraryName, inlinedLibraries) || typesLibraryName !== null && isLibraryAllowed(typesLibraryName, inlinedLibraries);
+function shouldLibraryBeInlined(
+	npmLibraryName: string,
+	typesLibraryName: string | null,
+	inlinedLibraries: string[]
+): boolean {
+	return (
+		isLibraryAllowed(npmLibraryName, inlinedLibraries)
+		|| (typesLibraryName !== null && isLibraryAllowed(typesLibraryName, inlinedLibraries))
+	);
 }
 
 function shouldLibraryBeImported(

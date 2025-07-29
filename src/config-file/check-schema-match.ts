@@ -16,10 +16,7 @@ export const schemaPrimitiveValues: Readonly<PrimitiveValues> = {
 	requiredString: 'REQUIRED',
 };
 
-const schemaRequiredValues = new Set([
-	schemaPrimitiveValues.requiredBoolean,
-	schemaPrimitiveValues.requiredString,
-]);
+const schemaRequiredValues = new Set([schemaPrimitiveValues.requiredBoolean, schemaPrimitiveValues.requiredString]);
 
 export function checkSchemaMatch<T>(value: unknown, schema: SchemeDescriptor<T>, errors: string[]): value is T {
 	if (value === undefined) {
@@ -31,7 +28,12 @@ export function checkSchemaMatch<T>(value: unknown, schema: SchemeDescriptor<T>,
 }
 
 // eslint-disable-next-line complexity
-function checkSchemaMatchRecursively<T>(value: unknown, schema: SchemeDescriptor<T> | [SchemeDescriptor<T>], prefix: string, errors: string[]): value is T {
+function checkSchemaMatchRecursively<T>(
+	value: unknown,
+	schema: SchemeDescriptor<T> | [SchemeDescriptor<T>],
+	prefix: string,
+	errors: string[]
+): value is T {
 	if (typeof schema === 'boolean' || typeof schema === 'string') {
 		const schemeType = typeof schema;
 		if (value === undefined && schemaRequiredValues.has(schema)) {

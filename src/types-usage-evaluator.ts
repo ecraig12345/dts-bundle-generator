@@ -31,7 +31,11 @@ export class TypesUsageEvaluator {
 		return this.nodesParentsMap.get(this.getActualSymbol(symbol)) || null;
 	}
 
-	private isSymbolUsedBySymbolImpl(fromSymbol: ts.Symbol, toSymbol: ts.Symbol, visitedSymbols: Set<ts.Symbol>): boolean {
+	private isSymbolUsedBySymbolImpl(
+		fromSymbol: ts.Symbol,
+		toSymbol: ts.Symbol,
+		visitedSymbols: Set<ts.Symbol>
+	): boolean {
 		if (fromSymbol === toSymbol) {
 			return this.setUsageCacheValue(fromSymbol, toSymbol, true);
 		}
@@ -126,16 +130,30 @@ export class TypesUsageEvaluator {
 		}
 
 		// `export * as ns from 'mod'`
-		if (ts.isExportDeclaration(node) && node.moduleSpecifier !== undefined && node.exportClause !== undefined && ts.isNamespaceExport(node.exportClause)) {
+		if (
+			ts.isExportDeclaration(node)
+			&& node.moduleSpecifier !== undefined
+			&& node.exportClause !== undefined
+			&& ts.isNamespaceExport(node.exportClause)
+		) {
 			this.addUsagesForNamespacedModule(node.exportClause, node.moduleSpecifier as ts.StringLiteral);
 		}
 
 		// `import * as ns from 'mod'`
-		if (ts.isImportDeclaration(node) && node.moduleSpecifier !== undefined && node.importClause?.namedBindings !== undefined && ts.isNamespaceImport(node.importClause.namedBindings)) {
+		if (
+			ts.isImportDeclaration(node)
+			&& node.moduleSpecifier !== undefined
+			&& node.importClause?.namedBindings !== undefined
+			&& ts.isNamespaceImport(node.importClause.namedBindings)
+		) {
 			// for namespaced imports we don't want to include module's exports into usage
 			// because only exports actually "assign" all exports to a namespace node
 			// namespaced imports affect only local scope (unless it is exported, but it handled elsewhere)
-			this.addUsagesForNamespacedModule(node.importClause.namedBindings, node.moduleSpecifier as ts.StringLiteral, false);
+			this.addUsagesForNamespacedModule(
+				node.importClause.namedBindings,
+				node.moduleSpecifier as ts.StringLiteral,
+				false
+			);
 		}
 
 		// `export {}` or `export {} from 'mod'`
@@ -148,7 +166,10 @@ export class TypesUsageEvaluator {
 				if (namespaceImportForElement !== undefined) {
 					// the namespaced import itself doesn't add a "usage", but re-export of that imported namespace does
 					// so here we're handling the case where previously imported namespace import has been re-exported from a module
-					this.addUsagesForNamespacedModule(namespaceImportForElement, namespaceImportForElement.parent.parent.moduleSpecifier as ts.StringLiteral);
+					this.addUsagesForNamespacedModule(
+						namespaceImportForElement,
+						namespaceImportForElement.parent.parent.moduleSpecifier as ts.StringLiteral
+					);
 				}
 
 				// "link" referenced symbol with its import
@@ -167,7 +188,12 @@ export class TypesUsageEvaluator {
 	private addUsagesForExportAssignment(exportAssignment: ts.ExportAssignment): void {
 		for (const declaration of getDeclarationsForExportedValues(exportAssignment, this.typeChecker)) {
 			// `declare module foobar {}` or `namespace foobar {}`
-			if (ts.isModuleDeclaration(declaration) && ts.isIdentifier(declaration.name) && declaration.body !== undefined && ts.isModuleBlock(declaration.body)) {
+			if (
+				ts.isModuleDeclaration(declaration)
+				&& ts.isIdentifier(declaration.name)
+				&& declaration.body !== undefined
+				&& ts.isModuleBlock(declaration.body)
+			) {
 				const moduleSymbol = this.getSymbol(declaration.name);
 
 				for (const statement of declaration.body.statements) {
@@ -191,7 +217,11 @@ export class TypesUsageEvaluator {
 		}
 	}
 
-	private addUsagesForNamespacedModule(namespaceNode: ts.NamespaceImport | ts.NamespaceExport, moduleSpecifier: ts.StringLiteral, includeExports: boolean = true): void {
+	private addUsagesForNamespacedModule(
+		namespaceNode: ts.NamespaceImport | ts.NamespaceExport,
+		moduleSpecifier: ts.StringLiteral,
+		includeExports: boolean = true
+	): void {
 		// note that we shouldn't resolve the actual symbol for the namespace
 		// as in some circumstances it will be resolved to the source file
 		// i.e. namespaceSymbol would become referencedModuleSymbol so it would be no-op
@@ -210,13 +240,19 @@ export class TypesUsageEvaluator {
 		}
 	}
 
-	private addExportsToSymbol(exports: ts.SymbolTable | undefined, parentSymbol: ts.Symbol, visitedSymbols: Set<ts.Symbol> = new Set()): void {
+	private addExportsToSymbol(
+		exports: ts.SymbolTable | undefined,
+		parentSymbol: ts.Symbol,
+		visitedSymbols: Set<ts.Symbol> = new Set()
+	): void {
 		exports?.forEach((moduleExportedSymbol: ts.Symbol, name: ts.__String) => {
 			if (name === ts.InternalSymbolName.ExportStar) {
 				// this means that an export contains `export * from 'module'` statement
 				for (const exportStarDeclaration of getSymbolExportStarDeclarations(moduleExportedSymbol)) {
 					if (exportStarDeclaration.moduleSpecifier === undefined) {
-						throw new Error(`Export star declaration does not have a module specifier '${exportStarDeclaration.getText()}'`);
+						throw new Error(
+							`Export star declaration does not have a module specifier '${exportStarDeclaration.getText()}'`
+						);
 					}
 
 					const referencedSourceFileSymbol = this.getSymbol(exportStarDeclaration.moduleSpecifier);
@@ -268,7 +304,11 @@ export class TypesUsageEvaluator {
 						// and it was created as part of namespaced import
 						// then we need to assign all exports of referenced module into that namespace
 						// because they might not be added previously while processing imports/exports
-						this.addUsagesForNamespacedModule(namespaceImport, namespaceImport.parent.parent.moduleSpecifier as ts.StringLiteral, true);
+						this.addUsagesForNamespacedModule(
+							namespaceImport,
+							namespaceImport.parent.parent.moduleSpecifier as ts.StringLiteral,
+							true
+						);
 					}
 				}
 			}

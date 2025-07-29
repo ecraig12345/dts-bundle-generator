@@ -2,7 +2,7 @@ import * as ts from 'typescript';
 import { errorLog } from '../logger';
 
 const formatDiagnosticsHost: ts.FormatDiagnosticsHost = {
-	getCanonicalFileName: (fileName: string) => ts.sys.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase(),
+	getCanonicalFileName: (fileName: string) => (ts.sys.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase()),
 	getCurrentDirectory: ts.sys.getCurrentDirectory,
 	getNewLine: () => ts.sys.newLine,
 };
