@@ -42,7 +42,7 @@ export class CollisionsResolver {
 	/**
 	 * Adds (or "registers") a top-level {@link identifier} (which takes a top-level scope name to use).
 	 */
-	public addTopLevelIdentifier(identifier: ts.Identifier | ts.DefaultKeyword): string {
+	public addTopLevelIdentifier(identifier: ts.Identifier | ts.DefaultKeyword | ts.ModuleExportName): string {
 		const symbol = getDeclarationNameSymbol(identifier, this.typeChecker);
 		if (!symbol) {
 			throw new Error(
