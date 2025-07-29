@@ -660,7 +660,7 @@ export function generateDtsBundle(entries: readonly EntryPointConfig[], options:
 			importItem.requireImports.add(collisionsResolver.addTopLevelIdentifier(preferredLocalName));
 		}
 
-		function addNamedImport(importItem: ModuleImportsSet, preferredLocalName: ts.Identifier, importedIdentifier: ts.Identifier): void {
+		function addNamedImport(importItem: ModuleImportsSet, preferredLocalName: ts.ModuleExportName, importedIdentifier: ts.ModuleExportName): void {
 			const newLocalName = collisionsResolver.addTopLevelIdentifier(preferredLocalName);
 			const importedName = importedIdentifier.text;
 			importItem.namedImports.set(newLocalName, importedName);
@@ -671,7 +671,7 @@ export function generateDtsBundle(entries: readonly EntryPointConfig[], options:
 			importItem.reExports.set(reExportedName, moduleExportedName);
 		}
 
-		function addNsImport(importItem: ModuleImportsSet, preferredLocalName: ts.Identifier): void {
+		function addNsImport(importItem: ModuleImportsSet, preferredLocalName: ts.ModuleExportName): void {
 			if (importItem.nsImport === null) {
 				importItem.nsImport = collisionsResolver.addTopLevelIdentifier(preferredLocalName);
 			}
@@ -1092,7 +1092,7 @@ export function generateDtsBundle(entries: readonly EntryPointConfig[], options:
 			}
 
 			// eslint-disable-next-line complexity
-			function getIdentifierOfNamespaceImportFromInlinedModule(nsSymbol: ts.Symbol): ts.Identifier | null {
+			function getIdentifierOfNamespaceImportFromInlinedModule(nsSymbol: ts.Symbol): ts.ModuleExportName | null {
 				// handling namespaced re-exports/imports
 				// e.g. `export * as NS from './local-module';` or `import * as NS from './local-module'; export { NS }`
 				for (const decl of getDeclarationsForSymbol(nsSymbol)) {
@@ -1238,7 +1238,7 @@ export function generateDtsBundle(entries: readonly EntryPointConfig[], options:
 							throw new Error(`Cannot find symbol or exports for source file ${sourceFile.fileName}`);
 						}
 
-						let namespaceIdentifier: ts.Identifier | null = null;
+						let namespaceIdentifier: ts.ModuleExportName | null = null;
 
 						forEachImportOfStatement(sourceFile, (imp: ImportOfStatement) => {
 							// here we want to handle creation of artificial namespace for a inlined module
