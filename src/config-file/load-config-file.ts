@@ -48,8 +48,14 @@ export function loadConfigFile(configPath: string): BundlerConfig {
 		}
 	});
 
-	if (possibleConfig.compilationOptions !== undefined && possibleConfig.compilationOptions.preferredConfigPath !== undefined) {
-		possibleConfig.compilationOptions.preferredConfigPath = getAbsolutePath(possibleConfig.compilationOptions.preferredConfigPath, configFolder);
+	if (
+		possibleConfig.compilationOptions !== undefined
+		&& possibleConfig.compilationOptions.preferredConfigPath !== undefined
+	) {
+		possibleConfig.compilationOptions.preferredConfigPath = getAbsolutePath(
+			possibleConfig.compilationOptions.preferredConfigPath,
+			configFolder
+		);
 	}
 
 	return possibleConfig;

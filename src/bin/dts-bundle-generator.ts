@@ -12,14 +12,7 @@ import { getCompilerOptions } from '../get-compiler-options';
 import { fixPath } from '../helpers/fix-path';
 import { measureTime } from '../helpers/measure-time';
 
-import {
-	enableNormalLog,
-	enableVerbose,
-	errorLog,
-	normalLog,
-	verboseLog,
-	warnLog,
-} from '../logger';
+import { enableNormalLog, enableVerbose, errorLog, normalLog, verboseLog, warnLog } from '../logger';
 
 function toStringsArray(data: unknown): string[] | undefined {
 	if (data === undefined) {
@@ -97,21 +90,24 @@ function parseArgs(): ParsedArgs {
 		})
 		.option('external-inlines', {
 			type: 'array',
-			description: 'Array of package names from node_modules to inline typings from.\n' +
-				'Used types will be inlined into the output file',
+			description:
+				'Array of package names from node_modules to inline typings from.\n'
+				+ 'Used types will be inlined into the output file',
 			coerce: toStringsArray,
 		})
 		.option('external-imports', {
 			type: 'array',
-			description: 'Array of package names from node_modules to import typings from.\n' +
-				'Used types will be imported using "import { First, Second } from \'library-name\';".\n' +
-				'By default all libraries will be imported (except inlined libraries and libraries from @types)',
+			description:
+				'Array of package names from node_modules to import typings from.\n'
+				+ 'Used types will be imported using "import { First, Second } from \'library-name\';".\n'
+				+ 'By default all libraries will be imported (except inlined libraries and libraries from @types)',
 			coerce: toStringsArray,
 		})
 		.option('external-types', {
 			type: 'array',
-			description: 'Array of package names from @types to import typings from via the triple-slash reference directive.\n' +
-				'By default all packages are allowed and will be used according to their usages',
+			description:
+				'Array of package names from @types to import typings from via the triple-slash reference directive.\n'
+				+ 'By default all packages are allowed and will be used according to their usages',
 			coerce: toStringsArray,
 		})
 		.option('umd-module-name', {
@@ -130,27 +126,32 @@ function parseArgs(): ParsedArgs {
 		.option('inline-declare-global', {
 			type: 'boolean',
 			default: false,
-			description: 'Enables inlining of `declare global` statements contained in files which should be inlined (all local files and packages from `--external-inlines`)',
+			description:
+				'Enables inlining of `declare global` statements contained in files which should be inlined (all local files and packages from `--external-inlines`)',
 		})
 		.option('inline-declare-externals', {
 			type: 'boolean',
 			default: false,
-			description: 'Enables inlining of `declare module` statements of the global modules (e.g. `declare module \'external-module\' {}`, but NOT `declare module \'./internal-module\' {}`) contained in files which should be inlined (all local files and packages from inlined libraries)',
+			description:
+				"Enables inlining of `declare module` statements of the global modules (e.g. `declare module 'external-module' {}`, but NOT `declare module './internal-module' {}`) contained in files which should be inlined (all local files and packages from inlined libraries)",
 		})
 		.option('disable-symlinks-following', {
 			type: 'boolean',
 			default: false,
-			description: '(EXPERIMENTAL) Disables resolving of symlinks to the original path. See https://github.com/timocov/dts-bundle-generator/issues/39 for more information',
+			description:
+				'(EXPERIMENTAL) Disables resolving of symlinks to the original path. See https://github.com/timocov/dts-bundle-generator/issues/39 for more information',
 		})
 		.option('respect-preserve-const-enum', {
 			type: 'boolean',
 			default: false,
-			description: 'Enables stripping the `const` keyword from every direct-exported (or re-exported) from entry file `const enum`. See https://github.com/timocov/dts-bundle-generator/issues/110 for more information',
+			description:
+				'Enables stripping the `const` keyword from every direct-exported (or re-exported) from entry file `const enum`. See https://github.com/timocov/dts-bundle-generator/issues/110 for more information',
 		})
 		.option('export-referenced-types', {
 			type: 'boolean',
 			default: true,
-			description: 'By default all interfaces, types and const enums are marked as exported even if they aren\'t exported directly. This option allows you to disable this behavior so a node will be exported if it is exported from root source file only.',
+			description:
+				"By default all interfaces, types and const enums are marked as exported even if they aren't exported directly. This option allows you to disable this behavior so a node will be exported if it is exported from root source file only.",
 		})
 		.option('config', {
 			type: 'string',
@@ -166,8 +167,7 @@ function parseArgs(): ParsedArgs {
 		.example('$0 path/to/your/entry-file.ts', '')
 		.example('$0 path/to/your/entry-file.ts path/to/your/entry-file-2.ts', '')
 		.example('$0 --external-types jquery react -- entry-file.ts', '')
-		.wrap(Math.min(100, yargs.terminalWidth()))
-		.argv as ParsedArgs;
+		.wrap(Math.min(100, yargs.terminalWidth())).argv as ParsedArgs;
 }
 
 function generateOutFileName(inputFilePath: string): string {
@@ -254,7 +254,8 @@ function main(): void {
 	}
 
 	normalLog('Checking generated files...');
-	const preferredConfigFile = bundlerConfig.compilationOptions !== undefined ? bundlerConfig.compilationOptions.preferredConfigPath : undefined;
+	const preferredConfigFile =
+		bundlerConfig.compilationOptions !== undefined ? bundlerConfig.compilationOptions.preferredConfigPath : undefined;
 	const compilerOptions = getCompilerOptions(outFilesToCheck, preferredConfigFile);
 	if (compilerOptions.skipLibCheck) {
 		compilerOptions.skipLibCheck = false;

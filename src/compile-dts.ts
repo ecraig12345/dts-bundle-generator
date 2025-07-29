@@ -29,7 +29,11 @@ const declarationExtsRemapping: Partial<Record<string, ts.Extension>> = {
 	[ts.Extension.Dcts]: ts.Extension.Dcts,
 } satisfies Record<ts.Extension, ts.Extension>;
 
-export function compileDts(rootFiles: readonly string[], preferredConfigPath?: string, followSymlinks: boolean = true): CompileDtsResult {
+export function compileDts(
+	rootFiles: readonly string[],
+	preferredConfigPath?: string,
+	followSymlinks: boolean = true
+): CompileDtsResult {
 	const compilerOptions = getCompilerOptions(rootFiles, preferredConfigPath);
 
 	// currently we don't support these compiler options
@@ -44,7 +48,9 @@ export function compileDts(rootFiles: readonly string[], preferredConfigPath?: s
 	compilerOptions.declaration = true;
 
 	if (compilerOptions.composite) {
-		warnLog(`Composite projects aren't supported at the time. Prefer to use non-composite project to generate declarations instead or just ignore this message if everything works fine. See https://github.com/timocov/dts-bundle-generator/issues/93`);
+		warnLog(
+			`Composite projects aren't supported at the time. Prefer to use non-composite project to generate declarations instead or just ignore this message if everything works fine. See https://github.com/timocov/dts-bundle-generator/issues/93`
+		);
 		compilerOptions.composite = undefined;
 	}
 
@@ -58,21 +64,38 @@ export function compileDts(rootFiles: readonly string[], preferredConfigPath?: s
 		host.realpath = (p: string) => p;
 	}
 
-	const moduleResolutionCache = ts.createModuleResolutionCache(host.getCurrentDirectory(), host.getCanonicalFileName, compilerOptions);
+	const moduleResolutionCache = ts.createModuleResolutionCache(
+		host.getCurrentDirectory(),
+		host.getCanonicalFileName,
+		compilerOptions
+	);
 
-	host.resolveModuleNameLiterals = (moduleLiterals: readonly ts.StringLiteralLike[], containingFile: string): ts.ResolvedModuleWithFailedLookupLocations[] => {
+	host.resolveModuleNameLiterals = (
+		moduleLiterals: readonly ts.StringLiteralLike[],
+		containingFile: string
+	): ts.ResolvedModuleWithFailedLookupLocations[] => {
 		return moduleLiterals.map((moduleLiteral: ts.StringLiteralLike): ts.ResolvedModuleWithFailedLookupLocations => {
-			const resolvedModule = ts.resolveModuleName(moduleLiteral.text, containingFile, compilerOptions, host, moduleResolutionCache).resolvedModule;
+			const resolvedModule = ts.resolveModuleName(
+				moduleLiteral.text,
+				containingFile,
+				compilerOptions,
+				host,
+				moduleResolutionCache
+			).resolvedModule;
 			if (resolvedModule && !resolvedModule.isExternalLibraryImport) {
 				const newExt = declarationExtsRemapping[resolvedModule.extension];
 				if (newExt === undefined) {
-					verboseLog(`Skipping module ${resolvedModule.resolvedFileName} because it has unsupported extension "${resolvedModule.extension}"`);
+					verboseLog(
+						`Skipping module ${resolvedModule.resolvedFileName} because it has unsupported extension "${resolvedModule.extension}"`
+					);
 					return { resolvedModule };
 				}
 
 				// eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
 				if (newExt !== resolvedModule.extension) {
-					verboseLog(`Changing module from ${resolvedModule.extension} to ${newExt} for ${resolvedModule.resolvedFileName}`);
+					verboseLog(
+						`Changing module from ${resolvedModule.extension} to ${newExt} for ${resolvedModule.resolvedFileName}`
+					);
 
 					resolvedModule.extension = newExt;
 					resolvedModule.resolvedFileName = changeExtensionToDts(resolvedModule.resolvedFileName);
@@ -113,7 +136,11 @@ function createCachingCompilerHost(compilerOptions: ts.CompilerOptions): ts.Comp
 	const sourceFilesCache = new Map<string, ts.SourceFile | undefined>();
 
 	const originalGetSourceFile = host.getSourceFile;
-	host.getSourceFile = (fileName: string, languageVersion: ts.ScriptTarget, onError?: (message: string) => void): ts.SourceFile | undefined => {
+	host.getSourceFile = (
+		fileName: string,
+		languageVersion: ts.ScriptTarget,
+		onError?: (message: string) => void
+	): ts.SourceFile | undefined => {
 		const key = host.getCanonicalFileName(fileName);
 		let cacheValue = sourceFilesCache.get(key);
 		if (cacheValue === undefined) {
@@ -155,7 +182,11 @@ function changeExtensionToDts(fileName: string): string {
 /**
  * @description Compiles source files into d.ts files and returns map of absolute path to file content
  */
-function getDeclarationFiles(rootFiles: readonly string[], compilerOptions: ts.CompilerOptions, host: ts.CompilerHost): Map<string, string> {
+function getDeclarationFiles(
+	rootFiles: readonly string[],
+	compilerOptions: ts.CompilerOptions,
+	host: ts.CompilerHost
+): Map<string, string> {
 	// we must pass `declaration: true` and `noEmit: false` if we want to generate declaration files
 	// see https://github.com/microsoft/TypeScript/issues/24002#issuecomment-550549393
 	// also, we don't want to generate anything apart from declarations so that's why `emitDeclarationOnly: true` is here

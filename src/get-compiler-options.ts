@@ -16,13 +16,19 @@ const parseConfigHost: ts.ParseConfigHost = {
 	readFile: ts.sys.readFile,
 };
 
-export function getCompilerOptions(inputFileNames: readonly string[], preferredConfigPath?: string): ts.CompilerOptions {
+export function getCompilerOptions(
+	inputFileNames: readonly string[],
+	preferredConfigPath?: string
+): ts.CompilerOptions {
 	const configFileName = preferredConfigPath !== undefined ? preferredConfigPath : findConfig(inputFileNames);
 
 	verboseLog(`Using config: ${configFileName}`);
 
 	const configParseResult = ts.readConfigFile(configFileName, ts.sys.readFile);
-	checkDiagnosticsErrors(configParseResult.error !== undefined ? [configParseResult.error] : [], 'Error while processing tsconfig file');
+	checkDiagnosticsErrors(
+		configParseResult.error !== undefined ? [configParseResult.error] : [],
+		'Error while processing tsconfig file'
+	);
 
 	const compilerOptionsParseResult = ts.parseJsonConfigFileContent(
 		configParseResult.config,
@@ -34,8 +40,10 @@ export function getCompilerOptions(inputFileNames: readonly string[], preferredC
 
 	// we don't want to raise an error if no inputs found in a config file
 	// because this error is mostly for CLI, but we'll pass an inputs in createProgram
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-	const diagnostics = compilerOptionsParseResult.errors.filter((d: ts.Diagnostic) => d.code !== Constants.NoInputsWereFoundDiagnosticCode);
+	const diagnostics = compilerOptionsParseResult.errors.filter(
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+		(d: ts.Diagnostic) => d.code !== Constants.NoInputsWereFoundDiagnosticCode
+	);
 
 	checkDiagnosticsErrors(diagnostics, 'Error while processing tsconfig compiler options');
 

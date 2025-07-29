@@ -1,14 +1,7 @@
 module.exports = {
 	root: true,
-	plugins: [
-		'@typescript-eslint',
-		'eslint-plugin-deprecation',
-		'eslint-plugin-import',
-		'eslint-plugin-unicorn',
-	],
-	extends: [
-		'eslint:recommended',
-	],
+	plugins: ['@typescript-eslint', 'eslint-plugin-deprecation', 'eslint-plugin-import', 'eslint-plugin-unicorn'],
+	extends: ['eslint:recommended', 'prettier'],
 	env: {
 		browser: false,
 		es6: true,
@@ -18,6 +11,7 @@ module.exports = {
 		ecmaVersion: 2020,
 		sourceType: 'module',
 	},
+	reportUnusedDisableDirectives: true,
 	overrides: [
 		{
 			// rules specific for js files only
@@ -36,10 +30,6 @@ module.exports = {
 				// encourages use of dot notation whenever possible
 				'dot-notation': ['error', { allowKeywords: true }],
 
-				// this option sets a specific tab width for your code
-				// https://github.com/eslint/eslint/blob/master/docs/rules/indent.md
-				indent: ['error', 'tab', { SwitchCase: 1, VariableDeclarator: 1 }],
-
 				// disallow creation of functions within loops
 				'no-loop-func': 'error',
 
@@ -54,12 +44,6 @@ module.exports = {
 
 				// disallow declaration of variables that are not used in the code
 				'no-unused-vars': ['error', { vars: 'local', args: 'none', ignoreRestSiblings: true }],
-
-				// specify whether double or single quotes should be used
-				quotes: ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
-
-				// require or disallow use of semicolons instead of ASI
-				semi: ['error', 'always'],
 			},
 		},
 		{
@@ -82,7 +66,6 @@ module.exports = {
 						default: 'array',
 					},
 				],
-				'@typescript-eslint/brace-style': ['error', '1tbs', { allowSingleLine: true }],
 				'@typescript-eslint/consistent-type-assertions': [
 					'error',
 					{
@@ -102,7 +85,6 @@ module.exports = {
 						},
 					},
 				],
-				'@typescript-eslint/indent': ['error', 'tab'],
 				'@typescript-eslint/member-delimiter-style': 'error',
 				'@typescript-eslint/member-ordering': [
 					'error',
@@ -160,13 +142,8 @@ module.exports = {
 				'@typescript-eslint/prefer-function-type': 'error',
 				'@typescript-eslint/prefer-readonly': 'off', // TODO
 				'@typescript-eslint/promise-function-async': 'off',
-				'@typescript-eslint/quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
 				'@typescript-eslint/restrict-plus-operands': 'off',
 				'@typescript-eslint/restrict-template-expressions': 'off',
-				'@typescript-eslint/semi': [
-					'error',
-					'always',
-				],
 				'@typescript-eslint/strict-boolean-expressions': 'off',
 				'@typescript-eslint/triple-slash-reference': [
 					'off',
@@ -195,8 +172,6 @@ module.exports = {
 		// enforces return statements in callbacks of array's methods
 		// http://eslint.org/docs/rules/array-callback-return
 		'array-callback-return': 'error',
-
-		'arrow-parens': ['error', 'as-needed'],
 
 		// enforce a maximum cyclomatic complexity allowed in a program
 		complexity: ['error', { max: 13 }],
@@ -287,12 +262,6 @@ module.exports = {
 		// restrict what can be thrown as an exception
 		'no-throw-literal': 'error',
 
-		// requires to declare all vars on top of their containing scope
-		// 'vars-on-top': 2,
-		// require immediate function invocation to be wrapped in parentheses
-		// http://eslint.org/docs/rules/wrap-iife.html
-		'wrap-iife': ['error', 'inside'],
-
 		// errors
 
 		// disallow assignment in conditional expressions
@@ -301,9 +270,6 @@ module.exports = {
 		// disallow use of console
 		'no-console': 'error',
 
-		// disallow unnecessary parentheses
-		'no-extra-parens': ['error', 'functions'],
-
 		// disallow template literal placeholder syntax in regular strings
 		'no-template-curly-in-string': 'error',
 
@@ -311,19 +277,6 @@ module.exports = {
 		'no-unexpected-multiline': 'off',
 
 		// es6
-
-		// require space before/after arrow function's arrow
-		// https://github.com/eslint/eslint/blob/master/docs/rules/arrow-spacing.md
-		'arrow-spacing': ['error', { before: true, after: true }],
-
-		// require trailing commas in multiline object literals
-		'comma-dangle': ['error', {
-			arrays: 'always-multiline',
-			objects: 'always-multiline',
-			imports: 'always-multiline',
-			exports: 'always-multiline',
-			functions: 'never',
-		}],
 
 		// disallow duplicate module imports
 		'no-duplicate-imports': 'error',
@@ -351,10 +304,6 @@ module.exports = {
 		// require template literals instead of string concatenation
 		'prefer-template': 'off', // TODO
 
-		// enforce usage of spacing in template strings
-		// http://eslint.org/docs/rules/template-curly-spacing
-		'template-curly-spacing': 'error',
-
 		// enforce spacing around the * in yield* expressions
 		// http://eslint.org/docs/rules/yield-star-spacing
 		'yield-star-spacing': ['error', 'after'],
@@ -370,56 +319,14 @@ module.exports = {
 
 		// style
 
-		// enforce spacing inside array brackets
-		'array-bracket-spacing': ['error', 'never'],
-
-		// enforce spacing before and after comma
-		'comma-spacing': ['error', { before: false, after: true }],
-
-		// enforce one true comma style
-		'comma-style': ['error', 'last'],
-
-		// disallow padding inside computed properties
-		'computed-property-spacing': ['error', 'never'],
-
-		// enforce newline at the end of file, with no multiple empty lines
-		'eol-last': 'error',
-
-		// specify whether double or single quotes should be used in JSX attributes
-		// http://eslint.org/docs/rules/jsx-quotes
-		'jsx-quotes': ['error', 'prefer-double'],
-
-		// enforces spacing between keys and values in object literal properties
-		'key-spacing': ['error', { beforeColon: false, afterColon: true }],
-
-		// require a space before & after certain keywords
-		'keyword-spacing': ['error', {
-			before: true,
-			after: true,
-			overrides: {
-				return: { after: true },
-				throw: { after: true },
-				case: { after: true },
-			},
-		}],
-
 		// enforce a maximum number of parameters in function definitions
 		'max-params': ['error', { max: 6 }],
 
 		// require a capital letter for constructors
 		'new-cap': ['error', { newIsCap: true, capIsNew: false }],
 
-		// enforce or disallow parentheses when invoking a constructor with no arguments
-		'new-parens': ['error', 'always'],
-
 		// disallow use of the Array constructor
 		'no-array-constructor': 'error',
-
-		// disallow mixed spaces and tabs for indentation
-		'no-mixed-spaces-and-tabs': 'error',
-
-		// disallow multiple empty lines and only one newline at the end
-		'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 1 }],
 
 		// disallow nested ternary expressions
 		// 'no-nested-ternary': 2,
@@ -429,23 +336,10 @@ module.exports = {
 		// disallow specified syntax
 		'no-restricted-syntax': ['error', 'ForInStatement', `BinaryExpression[operator='in']`],
 
-		// disallow space between function identifier and application
-		'no-spaced-func': 'error',
-
-		// disallow trailing whitespace at the end of lines
-		'no-trailing-spaces': 'error',
-
 		// disallow the use of Boolean literals in conditional expressions
 		// also, prefer `a || b` over `a ? a : b`
 		// http://eslint.org/docs/rules/no-unneeded-ternary
 		'no-unneeded-ternary': ['error', { defaultAssignment: false }],
-
-		// disallow whitespace before properties
-		// http://eslint.org/docs/rules/no-whitespace-before-property
-		'no-whitespace-before-property': 'error',
-
-		// require padding inside curly braces
-		'object-curly-spacing': ['error', 'always'],
 
 		// allow just one var statement per function
 		'one-var': ['error', 'never'],
@@ -454,9 +348,6 @@ module.exports = {
 		// http://eslint.org/docs/rules/one-var-declaration-per-line
 		'one-var-declaration-per-line': ['error', 'always'],
 
-		// enforce padding within blocks
-		'padded-blocks': ['error', 'never'],
-
 		// disallow using Object.assign with an object literal as the first argument and prefer the use of object spread instead.
 		'prefer-object-spread': 'error',
 
@@ -464,27 +355,18 @@ module.exports = {
 		// http://eslint.org/docs/rules/quote-props.html
 		'quote-props': ['error', 'as-needed', { keywords: false, unnecessary: true, numbers: false }],
 
-		// enforce spacing before and after semicolons
-		'semi-spacing': ['error', { before: false, after: true }],
-
 		// require or disallow space before blocks
 		'space-before-blocks': 'error',
 
-		// require or disallow space before function opening parenthesis
-		// https://github.com/eslint/eslint/blob/master/docs/rules/space-before-function-paren.md
-		'space-before-function-paren': ['error', { anonymous: 'never', named: 'never' }],
-
-		// require or disallow spaces inside parentheses
-		'space-in-parens': ['error', 'never'],
-
-		// require spaces around operators
-		'space-infix-ops': 'error',
-
 		// require or disallow a space immediately following the // or /* in a comment
-		'spaced-comment': ['error', 'always', {
-			exceptions: ['-', '+'],
-			markers: ['=', '!', '/'], // space here to support sprockets directives
-		}],
+		'spaced-comment': [
+			'error',
+			'always',
+			{
+				exceptions: ['-', '+'],
+				markers: ['=', '!', '/'], // space here to support sprockets directives
+			},
+		],
 
 		'import/no-default-export': 'error',
 

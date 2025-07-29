@@ -33,7 +33,9 @@ export interface OutputHelpers {
 	getStatementSettings(statement: ts.Statement): StatementSettings;
 	needStripConstFromConstEnum(constEnum: ts.EnumDeclaration): boolean;
 	needStripImportFromImportTypeNode(importType: ts.ImportTypeNode): boolean;
-	resolveIdentifierName(identifier: ts.Identifier | ts.QualifiedName | ts.PropertyAccessEntityNameExpression): string | null;
+	resolveIdentifierName(
+		identifier: ts.Identifier | ts.QualifiedName | ts.PropertyAccessEntityNameExpression
+	): string | null;
 }
 
 export type OutputParams = OutputHelpers & OutputInputData;
@@ -58,9 +60,11 @@ export function generateOutput(params: OutputParams, options: OutputOptions = {}
 
 	if (params.imports.size !== 0) {
 		// we need to have sorted imports of libraries to have more "stable" output
-		const sortedEntries = Array.from(params.imports.entries()).sort((firstEntry: [string, ModuleImportsSet], secondEntry: [string, ModuleImportsSet]) => {
-			return firstEntry[0].localeCompare(secondEntry[0]);
-		});
+		const sortedEntries = Array.from(params.imports.entries()).sort(
+			(firstEntry: [string, ModuleImportsSet], secondEntry: [string, ModuleImportsSet]) => {
+				return firstEntry[0].localeCompare(secondEntry[0]);
+			}
+		);
 
 		const importsArray: string[] = [];
 		for (const [libraryName, libraryImports] of sortedEntries) {
@@ -72,11 +76,9 @@ export function generateOutput(params: OutputParams, options: OutputOptions = {}
 		}
 	}
 
-	const statements = params.statements.map((statement: ts.Statement) => getStatementText(
-		statement,
-		Boolean(options.sortStatements),
-		params
-	));
+	const statements = params.statements.map((statement: ts.Statement) =>
+		getStatementText(statement, Boolean(options.sortStatements), params)
+	);
 
 	if (options.sortStatements) {
 		statements.sort(compareStatementText);
@@ -90,24 +92,22 @@ export function generateOutput(params: OutputParams, options: OutputOptions = {}
 		resultOutputParts.push(
 			Array.from(params.wrappedNamespaces.entries())
 				.map(([namespaceName, exportedNames]: [string, Map<string, string>]) => {
-					return `declare namespace ${namespaceName} {\n\texport { ${
-						Array.from(exportedNames.entries())
-							.map(([exportedName, localName]: [string, string]) => renamedExportValue(exportedName, localName))
-							.sort()
-							.join(', ')
-					} };\n}`;
+					return `declare namespace ${namespaceName} {\n\texport { ${Array.from(exportedNames.entries())
+						.map(([exportedName, localName]: [string, string]) => renamedExportValue(exportedName, localName))
+						.sort()
+						.join(', ')} };\n}`;
 				})
 				.join('\n')
 		);
 	}
 
 	if (params.renamedExports.size !== 0) {
-		resultOutputParts.push(`export {\n\t${
-			Array.from(params.renamedExports.entries())
+		resultOutputParts.push(
+			`export {\n\t${Array.from(params.renamedExports.entries())
 				.map(([exportedName, localName]: [string, string]) => renamedExportValue(exportedName, localName))
 				.sort()
-				.join(',\n\t')
-		},\n};`);
+				.join(',\n\t')},\n};`
+		);
 	}
 
 	if (options.umdModuleName !== undefined) {
@@ -140,13 +140,17 @@ function renamedImportValue(importedName: string, localName: string): string {
 }
 
 function prettifyStatementsText(statementsText: string): string {
-	const sourceFile = ts.createSourceFile('output.d.ts', statementsText, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
-	const printer = ts.createPrinter(
-		{
-			newLine: ts.NewLineKind.LineFeed,
-			removeComments: false,
-		}
+	const sourceFile = ts.createSourceFile(
+		'output.d.ts',
+		statementsText,
+		ts.ScriptTarget.Latest,
+		false,
+		ts.ScriptKind.TS
 	);
+	const printer = ts.createPrinter({
+		newLine: ts.NewLineKind.LineFeed,
+		removeComments: false,
+	});
 
 	return printer.printFile(sourceFile).trim();
 }
@@ -169,10 +173,7 @@ function recreateEntityName(node: ts.EntityName, helpers: OutputHelpers): ts.Ent
 		let result: ts.EntityName = ts.factory.createIdentifier(identifiers[0]);
 
 		for (let index = 1; index < identifiers.length; index += 1) {
-			result = ts.factory.createQualifiedName(
-				result,
-				ts.factory.createIdentifier(identifiers[index])
-			);
+			result = ts.factory.createQualifiedName(result, ts.factory.createIdentifier(identifiers[index]));
 		}
 
 		return result;
@@ -181,7 +182,11 @@ function recreateEntityName(node: ts.EntityName, helpers: OutputHelpers): ts.Ent
 	return node;
 }
 
-function getStatementText(statement: ts.Statement, includeSortingValue: boolean, helpers: OutputHelpers): StatementText {
+function getStatementText(
+	statement: ts.Statement,
+	includeSortingValue: boolean,
+	helpers: OutputHelpers
+): StatementText {
 	const { shouldHaveExportKeyword, shouldHaveJSDoc } = helpers.getStatementSettings(statement);
 
 	// re-export statements do not contribute to top-level names scope so we don't need to resolve their identifiers
@@ -222,7 +227,10 @@ function getStatementText(statement: ts.Statement, includeSortingValue: boolean,
 
 					if (ts.isIdentifier(node) || ts.isQualifiedName(node)) {
 						// QualifiedName and PropertyAccessExpression are handled separately
-						if (ts.isIdentifier(node) && (ts.isQualifiedName(node.parent) || ts.isPropertyAccessExpression(node.parent))) {
+						if (
+							ts.isIdentifier(node)
+							&& (ts.isQualifiedName(node.parent) || ts.isPropertyAccessExpression(node.parent))
+						) {
 							return node;
 						}
 
@@ -236,7 +244,11 @@ function getStatementText(statement: ts.Statement, includeSortingValue: boolean,
 				}
 
 				// `import('module').Qualifier` or `typeof import('module').Qualifier`
-				if (ts.isImportTypeNode(node) && node.qualifier !== undefined && helpers.needStripImportFromImportTypeNode(node)) {
+				if (
+					ts.isImportTypeNode(node)
+					&& node.qualifier !== undefined
+					&& helpers.needStripImportFromImportTypeNode(node)
+				) {
 					const newQualifier = recreateEntityName(node.qualifier, helpers);
 					if (node.isTypeOf) {
 						return ts.factory.createTypeQueryNode(newQualifier);
@@ -261,7 +273,8 @@ function getStatementText(statement: ts.Statement, includeSortingValue: boolean,
 
 				const nodeName = getNodeName(node);
 
-				const resolvedStatementName = nodeName !== undefined ? helpers.resolveIdentifierName(nodeName as ts.Identifier) || undefined : undefined;
+				const resolvedStatementName =
+					nodeName !== undefined ? helpers.resolveIdentifierName(nodeName as ts.Identifier) || undefined : undefined;
 
 				// strip the `default` keyword from node regardless
 				if (modifiersMap[ts.SyntaxKind.DefaultKeyword]) {
@@ -281,13 +294,13 @@ function getStatementText(statement: ts.Statement, includeSortingValue: boolean,
 				// for some reason TypeScript allows to not write `declare` keyword for ClassDeclaration, FunctionDeclaration and VariableDeclaration
 				// if it already has `export` keyword - so we need to add it
 				// to avoid TS1046: Top-level declarations in .d.ts files must start with either a 'declare' or 'export' modifier.
-				if (!modifiersMap[ts.SyntaxKind.ExportKeyword] &&
-					(ts.isClassDeclaration(node)
+				if (
+					!modifiersMap[ts.SyntaxKind.ExportKeyword]
+					&& (ts.isClassDeclaration(node)
 						|| ts.isFunctionDeclaration(node)
 						|| ts.isVariableStatement(node)
 						|| ts.isEnumDeclaration(node)
-						|| ts.isModuleDeclaration(node)
-					)
+						|| ts.isModuleDeclaration(node))
 				) {
 					modifiersMap[ts.SyntaxKind.DeclareKeyword] = true;
 				}
@@ -325,34 +338,39 @@ function generateImports(libraryName: string, imports: ModuleImportsSet): string
 		result.push(`import * as ${imports.nsImport} ${fromEnding}`);
 	}
 
-	Array.from(imports.requireImports).sort().forEach((importName: string) => result.push(`import ${importName} = require('${libraryName}');`));
-	Array.from(imports.defaultImports).sort().forEach((importName: string) => result.push(`import ${importName} ${fromEnding}`));
+	Array.from(imports.requireImports)
+		.sort()
+		.forEach((importName: string) => result.push(`import ${importName} = require('${libraryName}');`));
+	Array.from(imports.defaultImports)
+		.sort()
+		.forEach((importName: string) => result.push(`import ${importName} ${fromEnding}`));
 
 	if (imports.namedImports.size !== 0) {
-		result.push(`import { ${
-			Array.from(imports.namedImports.entries())
+		result.push(
+			`import { ${Array.from(imports.namedImports.entries())
 				.map(([localName, importedName]: [string, string]) => renamedImportValue(importedName, localName))
 				.sort()
-				.join(', ')
-		} } ${fromEnding}`);
+				.join(', ')} } ${fromEnding}`
+		);
 	}
 
 	if (imports.reExports.size !== 0) {
-		result.push(`export { ${
-			Array.from(imports.reExports.entries())
+		result.push(
+			`export { ${Array.from(imports.reExports.entries())
 				.map(([localName, importedName]: [string, string]) => renamedImportValue(importedName, localName))
 				.sort()
-				.join(', ')
-		} } ${fromEnding}`);
+				.join(', ')} } ${fromEnding}`
+		);
 	}
 
 	return result;
 }
 
 function generateReferenceTypesDirective(libraries: string[]): string {
-	return libraries.sort().map((library: string) => {
-		return `/// <reference types="${library}" />`;
-	}).join('\n');
+	return libraries
+		.sort()
+		.map((library: string) => `/// <reference types="${library}" />`)
+		.join('\n');
 }
 
 function spacesToTabs(text: string): string {

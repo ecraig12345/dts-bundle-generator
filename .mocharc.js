@@ -7,9 +7,7 @@ process.env.TS_NODE_PROJECT = path.resolve(__dirname, './tsconfig.options.json')
 process.env.TS_NODE_TRANSPILE_ONLY = 'true';
 
 const config = {
-	require: [
-		'ts-node/register',
-	],
+	require: ['ts-node/register'],
 	extension: ['.spec.ts', '.spec.js'],
 	ignore: '**/.tsc-out/**',
 	checkLeaks: true,
