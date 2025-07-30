@@ -20,13 +20,13 @@ export function getCompilerOptions(
 	inputFileNames: readonly string[],
 	preferredConfigPath?: string
 ): ts.CompilerOptions {
-	const configFileName = preferredConfigPath !== undefined ? preferredConfigPath : findConfig(inputFileNames);
+	const configFileName = preferredConfigPath || findConfig(inputFileNames);
 
 	verboseLog(`Using config: ${configFileName}`);
 
 	const configParseResult = ts.readConfigFile(configFileName, ts.sys.readFile);
 	checkDiagnosticsErrors(
-		configParseResult.error !== undefined ? [configParseResult.error] : [],
+		configParseResult.error ? [configParseResult.error] : [],
 		'Error while processing tsconfig file'
 	);
 
