@@ -34,6 +34,7 @@ import {
 	ModuleCriteria,
 	ModuleInfo,
 	ModuleType,
+	type LibraryOption,
 } from './module-info';
 
 import { generateOutput, ModuleImportsSet, OutputInputData, StatementSettings } from './generate-output';
@@ -69,7 +70,8 @@ export interface OutputOptions {
 	umdModuleName?: string;
 
 	/**
-	 * Enables inlining of `declare global` statements contained in files which should be inlined (all local files and packages from inlined libraries).
+	 * Enables inlining of `declare global` statements contained in files which should be inlined
+	 * (all local files and packages from inlined libraries).
 	 */
 	inlineDeclareGlobals?: boolean;
 
@@ -94,6 +96,7 @@ export interface OutputOptions {
 	/**
 	 * By default all interfaces, types and const enums are marked as exported even if they aren't exported directly.
 	 * This option allows you to disable this behavior so a node will be exported if it is exported from root source file only.
+	 * @default true
 	 */
 	exportReferencedTypes?: boolean;
 }
@@ -101,22 +104,27 @@ export interface OutputOptions {
 export interface LibrariesOptions {
 	/**
 	 * Array of package names from node_modules to inline typings from.
+	 * If a function, it takes the library name and returns true if it should be inlined.
 	 * Used types will be inlined into the output file.
 	 */
-	inlinedLibraries?: string[];
+	inlinedLibraries?: LibraryOption;
 
 	/**
 	 * Array of package names from node_modules to import typings from.
+	 * If a function, it takes the library name and returns true if it should be imported.
 	 * Used types will be imported using `import { First, Second } from 'library-name';`.
-	 * By default all libraries will be imported (except inlined libraries and libraries from `@types`).
+	 *
+	 * By default all libraries will be imported (except inlined libraries and `@types`).
 	 */
-	importedLibraries?: string[];
+	importedLibraries?: LibraryOption;
 
 	/**
 	 * Array of package names from `@types` to import typings from via the triple-slash reference directive.
+	 * If a function, it takes the library name and returns true if it's allowed.
+	 *
 	 * By default all packages are allowed and will be used according to their usages.
 	 */
-	allowedTypesLibraries?: string[];
+	allowedTypesLibraries?: LibraryOption;
 }
 
 export interface EntryPointConfig {

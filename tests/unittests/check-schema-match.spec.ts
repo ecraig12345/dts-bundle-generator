@@ -11,8 +11,10 @@ interface TestInterface {
 	requiredBooleanProp: boolean;
 	stringProp?: string;
 	requiredStringProp: string;
+	functionProp?: () => void;
 	testArray?: TestObj[];
 	stringArray?: string[];
+	stringArrayOrFunction?: string[] | ((value: string) => boolean);
 }
 
 const testSchema: SchemeDescriptor<TestInterface> = {
@@ -20,12 +22,14 @@ const testSchema: SchemeDescriptor<TestInterface> = {
 	requiredBooleanProp: schemaPrimitiveValues.requiredBoolean,
 	stringProp: schemaPrimitiveValues.string,
 	requiredStringProp: schemaPrimitiveValues.requiredString,
+	functionProp: schemaPrimitiveValues.function,
 	testArray: [
 		{
 			foo: schemaPrimitiveValues.requiredString,
 		},
 	],
 	stringArray: [schemaPrimitiveValues.string],
+	stringArrayOrFunction: { oneOf: [[schemaPrimitiveValues.string], schemaPrimitiveValues.function] },
 };
 
 function formatErrors(errors: string[]): string {
@@ -39,6 +43,7 @@ describe('checkSchemaMatch', () => {
 			requiredBooleanProp: false,
 			stringProp: 'test',
 			requiredStringProp: 'test',
+			functionProp: () => {},
 		};
 
 		const errors: string[] = [];
@@ -66,7 +71,7 @@ describe('checkSchemaMatch', () => {
 		assert.strictEqual(checkSchemaMatch(obj, testSchema, errors), true, formatErrors(errors));
 	});
 
-	it('should return false if object contains exceeded property', () => {
+	it('should return false if object contains excess property', () => {
 		const obj = {
 			requiredBooleanProp: false,
 			requiredStringProp: 'test',
@@ -86,7 +91,7 @@ describe('checkSchemaMatch', () => {
 		assert.strictEqual(checkSchemaMatch(obj, testSchema, errors), false, formatErrors(errors));
 	});
 
-	it('should return false if both does not have required property and have exceeded property', () => {
+	it('should return false if both does not have required property and have excess property', () => {
 		const obj = {
 			requiredBooleanProp: false,
 			fooBar: 123,
@@ -145,5 +150,34 @@ describe('checkSchemaMatch', () => {
 	it('should return false if root object is undefined', () => {
 		const errors: string[] = [];
 		assert.strictEqual(checkSchemaMatch(undefined, testSchema, errors), false, formatErrors(errors));
+	});
+
+	it('should return true if value matches one of the schemas', () => {
+		const obj1: TestInterface = {
+			requiredBooleanProp: false,
+			requiredStringProp: 'test',
+			stringArrayOrFunction: () => true,
+		};
+
+		const errors: string[] = [];
+		assert.strictEqual(checkSchemaMatch(obj1, testSchema, errors), true, formatErrors(errors));
+
+		const obj2: TestInterface = {
+			requiredBooleanProp: false,
+			requiredStringProp: 'test',
+			stringArrayOrFunction: ['string1', 'string2'],
+		};
+		assert.strictEqual(checkSchemaMatch(obj2, testSchema, errors), true, formatErrors(errors));
+	});
+
+	it('should return false if value does not match any of the schemas', () => {
+		const obj: TestInterface = {
+			requiredBooleanProp: false,
+			requiredStringProp: 'test',
+			stringArrayOrFunction: 123 as unknown as string[],
+		};
+
+		const errors: string[] = [];
+		assert.strictEqual(checkSchemaMatch(obj, testSchema, errors), false, formatErrors(errors));
 	});
 });
