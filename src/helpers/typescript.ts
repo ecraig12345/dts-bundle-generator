@@ -35,10 +35,10 @@ export function hasNodeModifier(node: ts.Node, modifier: ts.SyntaxKind): boolean
 
 export function getNodeName(node: ts.Node): NodeName | undefined {
 	const nodeName = (node as unknown as ts.NamedDeclaration).name;
-	if (nodeName === undefined) {
+	if (!nodeName) {
 		const modifiers = getModifiers(node);
 		const defaultModifier = modifiers?.find((mod: ts.Modifier) => mod.kind === ts.SyntaxKind.DefaultKeyword);
-		if (defaultModifier !== undefined) {
+		if (defaultModifier) {
 			return defaultModifier as NodeName;
 		}
 	}
@@ -46,27 +46,17 @@ export function getNodeName(node: ts.Node): NodeName | undefined {
 	return nodeName;
 }
 
-interface TypeCheckerCompat extends ts.TypeChecker {
-	// this method will be added in the further typescript releases
-	// see https://github.com/microsoft/TypeScript/pull/56193
-	getMergedSymbol(symbol: ts.Symbol): ts.Symbol;
-}
-
 export function getActualSymbol(symbol: ts.Symbol, typeChecker: ts.TypeChecker): ts.Symbol {
 	if (symbol.flags & ts.SymbolFlags.Alias) {
 		symbol = typeChecker.getAliasedSymbol(symbol);
 	}
 
-	return (typeChecker as TypeCheckerCompat).getMergedSymbol(symbol);
+	return typeChecker.getMergedSymbol(symbol);
 }
 
 export function getDeclarationNameSymbol(name: NodeName, typeChecker: ts.TypeChecker): ts.Symbol | null {
 	const symbol = typeChecker.getSymbolAtLocation(name);
-	if (symbol === undefined) {
-		return null;
-	}
-
-	return getActualSymbol(symbol, typeChecker);
+	return symbol ? getActualSymbol(symbol, typeChecker) : null;
 }
 
 export function splitTransientSymbol(symbol: ts.Symbol, typeChecker: ts.TypeChecker): Set<ts.Symbol> {
@@ -84,16 +74,14 @@ export function splitTransientSymbol(symbol: ts.Symbol, typeChecker: ts.TypeChec
 	const declarations = getDeclarationsForSymbol(symbol);
 	const result = new Set<ts.Symbol>();
 	for (const declaration of declarations) {
-		if (!isNodeNamedDeclaration(declaration) || declaration.name === undefined) {
+		if (!isNodeNamedDeclaration(declaration) || !declaration.name) {
 			continue;
 		}
 
 		const sym = typeChecker.getSymbolAtLocation(declaration.name);
-		if (sym === undefined) {
-			continue;
+		if (sym) {
+			result.add(getActualSymbol(sym, typeChecker));
 		}
-
-		result.add(getActualSymbol(sym, typeChecker));
 	}
 
 	return result;
@@ -135,11 +123,11 @@ export function isDeclareGlobalStatement(statement: ts.Statement): statement is 
 export function getDeclarationsForSymbol(symbol: ts.Symbol): ts.Declaration[] {
 	const result: ts.Declaration[] = [];
 
-	if (symbol.declarations !== undefined) {
+	if (symbol.declarations) {
 		result.push(...symbol.declarations);
 	}
 
-	if (symbol.valueDeclaration !== undefined) {
+	if (symbol.valueDeclaration) {
 		// push valueDeclaration might be already in declarations array
 		// so let's check first to avoid duplication nodes
 		if (!result.includes(symbol.valueDeclaration)) {
@@ -164,9 +152,9 @@ export interface SourceFileExport {
 }
 
 export function getExportsForSourceFile(typeChecker: ts.TypeChecker, sourceFileSymbol: ts.Symbol): SourceFileExport[] {
-	if (sourceFileSymbol.exports !== undefined) {
+	if (sourceFileSymbol.exports) {
 		const commonJsExport = sourceFileSymbol.exports.get(ts.InternalSymbolName.ExportEquals);
-		if (commonJsExport !== undefined) {
+		if (commonJsExport) {
 			const symbol = getActualSymbol(commonJsExport, typeChecker);
 			return [
 				{
@@ -186,11 +174,11 @@ export function getExportsForSourceFile(typeChecker: ts.TypeChecker, sourceFileS
 		type: ExportType.ES6Named,
 	}));
 
-	if (sourceFileSymbol.exports !== undefined) {
+	if (sourceFileSymbol.exports) {
 		const defaultExportSymbol = sourceFileSymbol.exports.get(ts.InternalSymbolName.Default);
-		if (defaultExportSymbol !== undefined) {
+		if (defaultExportSymbol) {
 			const defaultExport = result.find((exp: SourceFileExport) => exp.symbol === defaultExportSymbol);
-			if (defaultExport !== undefined) {
+			if (defaultExport) {
 				defaultExport.type = ExportType.ES6Default;
 			} else {
 				// it seems that default export is always returned by getExportsOfModule
@@ -212,7 +200,7 @@ export function getExportsForSourceFile(typeChecker: ts.TypeChecker, sourceFileS
 
 		const symbolsDeclarations = getDeclarationsForSymbol(exp.symbol);
 		const importSpecifierDeclaration = symbolsDeclarations.find(ts.isImportSpecifier);
-		if (symbolsDeclarations.length > 1 && importSpecifierDeclaration !== undefined) {
+		if (symbolsDeclarations.length > 1 && importSpecifierDeclaration) {
 			// most likely this export is part of the symbol merging situation
 			// where one of the declarations is the imported value but the other is declared locally
 			// in this case we need to add an extra export to the exports list to make sure that it is marked as "exported"
@@ -220,14 +208,14 @@ export function getExportsForSourceFile(typeChecker: ts.TypeChecker, sourceFileS
 				importSpecifierDeclaration.parent.parent.parent as ts.ImportDeclaration,
 				typeChecker
 			);
-			if (referencedModule !== null) {
+			if (referencedModule) {
 				const referencedModuleSymbol = getNodeSymbol(referencedModule, typeChecker);
-				if (referencedModuleSymbol !== null) {
+				if (referencedModuleSymbol) {
 					const importedName = (importSpecifierDeclaration.propertyName ?? importSpecifierDeclaration.name).getText();
 					const exportedItemSymbol = typeChecker
 						.getExportsOfModule(referencedModuleSymbol)
 						.find((exportSymbol: ts.Symbol) => exportSymbol.getName() === importedName);
-					if (exportedItemSymbol !== undefined) {
+					if (exportedItemSymbol) {
 						symbolsMergingResolvedExports.push({
 							...exp,
 							symbol: getActualSymbol(exportedItemSymbol, typeChecker),
@@ -246,25 +234,12 @@ export function resolveIdentifier(
 	identifier: ts.Identifier
 ): ts.NamedDeclaration | undefined {
 	const symbol = getDeclarationNameSymbol(identifier, typeChecker);
-	if (symbol === null) {
-		return undefined;
-	}
-
-	return resolveDeclarationByIdentifierSymbol(symbol);
+	return symbol ? resolveDeclarationByIdentifierSymbol(symbol) : undefined;
 }
 
 function resolveDeclarationByIdentifierSymbol(identifierSymbol: ts.Symbol): ts.NamedDeclaration | undefined {
-	const declarations = getDeclarationsForSymbol(identifierSymbol);
-	if (declarations.length === 0) {
-		return undefined;
-	}
-
-	const decl = declarations[0];
-	if (!isNodeNamedDeclaration(decl)) {
-		return undefined;
-	}
-
-	return decl;
+	const decl = getDeclarationsForSymbol(identifierSymbol)[0];
+	return decl && isNodeNamedDeclaration(decl) ? decl : undefined;
 }
 
 export function getExportsForStatement(
@@ -273,7 +248,7 @@ export function getExportsForStatement(
 	statement: ts.Statement | ts.NamedDeclaration
 ): SourceFileExport[] {
 	if (ts.isVariableStatement(statement)) {
-		if (statement.declarationList.declarations.length === 0) {
+		if (!statement.declarationList.declarations.length) {
 			return [];
 		}
 
@@ -283,31 +258,19 @@ export function getExportsForStatement(
 			statement.declarationList.declarations[0].name
 		);
 
+		// all declaration should have the same export type
+		// TODO: for now it's not supported to have different type of exports
 		const allDeclarationsHaveSameExportType = statement.declarationList.declarations.every(
-			(variableDecl: ts.VariableDeclaration) => {
-				// all declaration should have the same export type
-				// TODO: for now it's not supported to have different type of exports
-				return (
-					getExportsForName(exportedSymbols, typeChecker, variableDecl.name)[0]?.type
-					=== firstDeclarationExports[0]?.type
-				);
-			}
+			(variableDecl: ts.VariableDeclaration) =>
+				getExportsForName(exportedSymbols, typeChecker, variableDecl.name)[0]?.type === firstDeclarationExports[0]?.type
 		);
 
-		if (!allDeclarationsHaveSameExportType) {
-			// log warn?
-			return [];
-		}
-
-		return firstDeclarationExports;
+		// log warn if not same?
+		return allDeclarationsHaveSameExportType ? firstDeclarationExports : [];
 	}
 
 	const nodeName = getNodeName(statement);
-	if (nodeName === undefined) {
-		return [];
-	}
-
-	return getExportsForName(exportedSymbols, typeChecker, nodeName);
+	return nodeName ? getExportsForName(exportedSymbols, typeChecker, nodeName) : [];
 }
 
 function getExportsForName(
@@ -512,11 +475,7 @@ If you're seeing this error, please report a bug on https://github.com/timocov/d
 }
 
 export function getModifiers(node: ts.Node): readonly ts.Modifier[] | undefined {
-	if (!ts.canHaveModifiers(node)) {
-		return undefined;
-	}
-
-	return ts.getModifiers(node);
+	return ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
 }
 
 export function getRootSourceFile(program: ts.Program, rootFileName: string): ts.SourceFile {
@@ -525,7 +484,7 @@ export function getRootSourceFile(program: ts.Program, rootFileName: string): ts
 	}
 
 	const sourceFile = program.getSourceFile(rootFileName);
-	if (sourceFile === undefined) {
+	if (!sourceFile) {
 		throw new Error(`Cannot get source file for root file ${rootFileName}`);
 	}
 
@@ -534,7 +493,7 @@ export function getRootSourceFile(program: ts.Program, rootFileName: string): ts
 
 export function getNodeOwnSymbol(node: ts.Node, typeChecker: ts.TypeChecker): ts.Symbol {
 	const nodeSymbol = typeChecker.getSymbolAtLocation(node);
-	if (nodeSymbol === undefined) {
+	if (!nodeSymbol) {
 		throw new Error(
 			`Cannot find symbol for node "${node.getText()}" in "${node.parent.getText()}" from "${node.getSourceFile().fileName}"`
 		);
@@ -547,19 +506,11 @@ export function getNodeSymbol(node: ts.Node, typeChecker: ts.TypeChecker): ts.Sy
 	if (ts.isSourceFile(node)) {
 		const fileSymbol = typeChecker.getSymbolAtLocation(node);
 		// a source file might not have a symbol in case of no exports in that file
-		if (fileSymbol === undefined) {
-			return null;
-		}
-
-		return getActualSymbol(fileSymbol, typeChecker);
+		return fileSymbol ? getActualSymbol(fileSymbol, typeChecker) : null;
 	}
 
 	const nodeName = getNodeName(node);
-	if (nodeName === undefined) {
-		return null;
-	}
-
-	return getDeclarationNameSymbol(nodeName, typeChecker);
+	return nodeName ? getDeclarationNameSymbol(nodeName, typeChecker) : null;
 }
 
 export function getClosestModuleLikeNode(node: ts.Node): ts.SourceFile | ts.ModuleDeclaration {
@@ -607,17 +558,9 @@ export function resolveReferencedModule(
 		moduleName = node.argument.literal;
 	}
 
-	if (moduleName === undefined) {
-		return null;
-	}
-
-	const moduleSymbol = typeChecker.getSymbolAtLocation(moduleName);
-	if (moduleSymbol === undefined) {
-		return null;
-	}
-
-	const symbol = getActualSymbol(moduleSymbol, typeChecker);
-	if (symbol.valueDeclaration === undefined) {
+	const moduleSymbol = moduleName && typeChecker.getSymbolAtLocation(moduleName);
+	const symbol = moduleSymbol && getActualSymbol(moduleSymbol, typeChecker);
+	if (!symbol?.valueDeclaration) {
 		return null;
 	}
 
@@ -630,11 +573,11 @@ export function getImportModuleName(
 	imp: ts.ImportEqualsDeclaration | ts.ImportDeclaration | ts.ExportDeclaration
 ): string | null {
 	if (ts.isImportDeclaration(imp)) {
-		return imp.importClause === undefined ? null : (imp.moduleSpecifier as ts.StringLiteral).text;
+		return imp.importClause ? (imp.moduleSpecifier as ts.StringLiteral).text : null;
 	}
 
 	if (ts.isExportDeclaration(imp)) {
-		return imp.moduleSpecifier === undefined ? null : (imp.moduleSpecifier as ts.StringLiteral).text;
+		return imp.moduleSpecifier ? (imp.moduleSpecifier as ts.StringLiteral).text : null;
 	}
 
 	if (ts.isExternalModuleReference(imp.moduleReference)) {
@@ -672,8 +615,7 @@ export function getSymbolExportStarDeclarations(symbol: ts.Symbol): ts.ExportDec
 
 	// this means that an export contains `export * from 'module'` statement
 	return getDeclarationsForSymbol(symbol).filter(
-		(decl: ts.Declaration): decl is ts.ExportDeclaration =>
-			ts.isExportDeclaration(decl) && decl.moduleSpecifier !== undefined
+		(decl: ts.Declaration): decl is ts.ExportDeclaration => ts.isExportDeclaration(decl) && !!decl.moduleSpecifier
 	);
 }
 
@@ -682,17 +624,10 @@ export function getDeclarationsForExportedValues(
 	typeChecker: ts.TypeChecker
 ): ts.Declaration[] {
 	const nodeForSymbol = ts.isExportAssignment(exp) ? exp.expression : exp.moduleSpecifier;
-	if (nodeForSymbol === undefined) {
-		return [];
-	}
+	const symbolForExpression = nodeForSymbol && typeChecker.getSymbolAtLocation(nodeForSymbol);
+	const symbol = symbolForExpression && getActualSymbol(symbolForExpression, typeChecker);
 
-	const symbolForExpression = typeChecker.getSymbolAtLocation(nodeForSymbol);
-	if (symbolForExpression === undefined) {
-		return [];
-	}
-
-	const symbol = getActualSymbol(symbolForExpression, typeChecker);
-	return getDeclarationsForSymbol(symbol);
+	return symbol ? getDeclarationsForSymbol(symbol) : [];
 }
 
 export function resolveGlobalName(typeChecker: ts.TypeChecker, name: string): ts.Symbol | undefined {

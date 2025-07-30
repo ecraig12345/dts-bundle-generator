@@ -46,15 +46,13 @@ export class TypesUsageEvaluator {
 		}
 
 		const reachableNodes = this.nodesParentsMap.get(fromSymbol);
-		if (reachableNodes !== undefined) {
+		if (reachableNodes) {
 			for (const symbol of reachableNodes) {
-				if (visitedSymbols.has(symbol)) {
-					continue;
-				}
-
-				visitedSymbols.add(symbol);
-				if (this.isSymbolUsedBySymbolImpl(symbol, toSymbol, visitedSymbols)) {
-					return this.setUsageCacheValue(fromSymbol, toSymbol, true);
+				if (!visitedSymbols.has(symbol)) {
+					visitedSymbols.add(symbol);
+					if (this.isSymbolUsedBySymbolImpl(symbol, toSymbol, visitedSymbols)) {
+						return this.setUsageCacheValue(fromSymbol, toSymbol, true);
+					}
 				}
 			}
 		}
@@ -70,7 +68,7 @@ export class TypesUsageEvaluator {
 
 	private setUsageCacheValue(fromSymbol: ts.Symbol, toSymbol: ts.Symbol, value: boolean): boolean {
 		let fromSymbolCacheMap = this.usageResultCache.get(fromSymbol);
-		if (fromSymbolCacheMap === undefined) {
+		if (!fromSymbolCacheMap) {
 			fromSymbolCacheMap = new Map();
 			this.usageResultCache.set(fromSymbol, fromSymbolCacheMap);
 		}
@@ -90,14 +88,14 @@ export class TypesUsageEvaluator {
 
 	// eslint-disable-next-line complexity
 	private computeUsageForNode(node: ts.Node): void {
-		if (isDeclareModule(node) && node.body !== undefined && ts.isModuleBlock(node.body)) {
+		if (isDeclareModule(node) && node.body && ts.isModuleBlock(node.body)) {
 			const moduleSymbol = this.getSymbol(node.name);
 			for (const statement of node.body.statements) {
 				this.computeUsageForNode(statement);
 
 				if (isNodeNamedDeclaration(statement)) {
 					const nodeName = getNodeName(statement);
-					if (nodeName !== undefined) {
+					if (nodeName) {
 						// a node declared in `declare module` should adds "usage" to that module
 						// so we can track its usage later if needed
 						const statementSymbol = this.getSymbol(nodeName);
@@ -109,14 +107,14 @@ export class TypesUsageEvaluator {
 
 		if (isNodeNamedDeclaration(node)) {
 			const nodeName = getNodeName(node);
-			if (nodeName !== undefined) {
+			if (nodeName) {
 				if (ts.isObjectBindingPattern(nodeName) || ts.isArrayBindingPattern(nodeName)) {
 					for (const element of nodeName.elements) {
 						this.computeUsageForNode(element);
 					}
 				} else {
 					const childSymbol = this.getSymbol(nodeName);
-					if (childSymbol !== null) {
+					if (childSymbol) {
 						this.computeUsagesRecursively(node, childSymbol);
 					}
 				}
@@ -132,8 +130,8 @@ export class TypesUsageEvaluator {
 		// `export * as ns from 'mod'`
 		if (
 			ts.isExportDeclaration(node)
-			&& node.moduleSpecifier !== undefined
-			&& node.exportClause !== undefined
+			&& node.moduleSpecifier
+			&& node.exportClause
 			&& ts.isNamespaceExport(node.exportClause)
 		) {
 			this.addUsagesForNamespacedModule(node.exportClause, node.moduleSpecifier as ts.StringLiteral);
@@ -142,8 +140,8 @@ export class TypesUsageEvaluator {
 		// `import * as ns from 'mod'`
 		if (
 			ts.isImportDeclaration(node)
-			&& node.moduleSpecifier !== undefined
-			&& node.importClause?.namedBindings !== undefined
+			&& node.moduleSpecifier
+			&& node.importClause?.namedBindings
 			&& ts.isNamespaceImport(node.importClause.namedBindings)
 		) {
 			// for namespaced imports we don't want to include module's exports into usage
@@ -157,13 +155,13 @@ export class TypesUsageEvaluator {
 		}
 
 		// `export {}` or `export {} from 'mod'`
-		if (ts.isExportDeclaration(node) && node.exportClause !== undefined && ts.isNamedExports(node.exportClause)) {
+		if (ts.isExportDeclaration(node) && node.exportClause && ts.isNamedExports(node.exportClause)) {
 			for (const exportElement of node.exportClause.elements) {
 				const exportElementSymbol = getImportExportReferencedSymbol(exportElement, this.typeChecker);
 
 				// i.e. `import * as NS from './local-module'`
 				const namespaceImportForElement = getDeclarationsForSymbol(exportElementSymbol).find(ts.isNamespaceImport);
-				if (namespaceImportForElement !== undefined) {
+				if (namespaceImportForElement) {
 					// the namespaced import itself doesn't add a "usage", but re-export of that imported namespace does
 					// so here we're handling the case where previously imported namespace import has been re-exported from a module
 					this.addUsagesForNamespacedModule(
@@ -191,15 +189,15 @@ export class TypesUsageEvaluator {
 			if (
 				ts.isModuleDeclaration(declaration)
 				&& ts.isIdentifier(declaration.name)
-				&& declaration.body !== undefined
+				&& declaration.body
 				&& ts.isModuleBlock(declaration.body)
 			) {
 				const moduleSymbol = this.getSymbol(declaration.name);
 
 				for (const statement of declaration.body.statements) {
-					if (isNodeNamedDeclaration(statement) && statement.name !== undefined) {
+					if (isNodeNamedDeclaration(statement) && statement.name) {
 						const statementSymbol = this.getSymbol(statement.name);
-						if (statementSymbol !== null) {
+						if (statementSymbol) {
 							// this feels counter-intuitive that we assign a statement as a parent of a module
 							// but this is what happens when you have `export=` statements
 							// you can import an interface declared in `export=` exported namespace
@@ -249,7 +247,7 @@ export class TypesUsageEvaluator {
 			if (name === ts.InternalSymbolName.ExportStar) {
 				// this means that an export contains `export * from 'module'` statement
 				for (const exportStarDeclaration of getSymbolExportStarDeclarations(moduleExportedSymbol)) {
-					if (exportStarDeclaration.moduleSpecifier === undefined) {
+					if (!exportStarDeclaration.moduleSpecifier) {
 						throw new Error(
 							`Export star declaration does not have a module specifier '${exportStarDeclaration.getText()}'`
 						);
@@ -264,11 +262,9 @@ export class TypesUsageEvaluator {
 
 					this.addExportsToSymbol(referencedSourceFileSymbol.exports, parentSymbol, visitedSymbols);
 				}
-
-				return;
+			} else {
+				this.addUsages(moduleExportedSymbol, parentSymbol);
 			}
-
-			this.addUsages(moduleExportedSymbol, parentSymbol);
 		});
 	}
 
@@ -299,7 +295,7 @@ export class TypesUsageEvaluator {
 
 					// i.e. `import * as NS from './local-module'`
 					const namespaceImport = getDeclarationsForSymbol(childOwnSymbol).find(ts.isNamespaceImport);
-					if (namespaceImport !== undefined) {
+					if (namespaceImport) {
 						// if a node is an identifier and not part of a qualified name
 						// and it was created as part of namespaced import
 						// then we need to assign all exports of referenced module into that namespace
@@ -320,7 +316,7 @@ export class TypesUsageEvaluator {
 
 		for (const childSplitSymbol of childSymbols) {
 			let symbols = this.nodesParentsMap.get(childSplitSymbol);
-			if (symbols === undefined) {
+			if (!symbols) {
 				symbols = new Set<ts.Symbol>();
 				this.nodesParentsMap.set(childSplitSymbol, symbols);
 			}

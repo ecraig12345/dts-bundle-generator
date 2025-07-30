@@ -7,24 +7,15 @@ export function getLibraryName(fileName: string): string | null {
 		return null;
 	}
 
-	const match = libraryNameRegex.exec(fileName.slice(lastNodeModulesIndex));
-	if (match === null) {
-		return null;
-	}
-
-	return match[1];
+	return libraryNameRegex.exec(fileName.slice(lastNodeModulesIndex))?.[1] || null;
 }
 
 export function getTypesLibraryName(path: string): string | null {
 	const libraryName = getLibraryName(path);
-	if (libraryName === null) {
+	if (!libraryName) {
 		return null;
 	}
 
 	const typesFolderPrefix = '@types/';
-	if (!libraryName.startsWith(typesFolderPrefix)) {
-		return null;
-	}
-
-	return libraryName.substring(typesFolderPrefix.length);
+	return libraryName.startsWith(typesFolderPrefix) ? libraryName.slice(typesFolderPrefix.length) : null;
 }

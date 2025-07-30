@@ -84,7 +84,7 @@ export function compileDts(
 			).resolvedModule;
 			if (resolvedModule && !resolvedModule.isExternalLibraryImport) {
 				const newExt = declarationExtsRemapping[resolvedModule.extension];
-				if (newExt === undefined) {
+				if (!newExt) {
 					verboseLog(
 						`Skipping module ${resolvedModule.resolvedFileName} because it has unsupported extension "${resolvedModule.extension}"`
 					);
@@ -109,7 +109,7 @@ export function compileDts(
 	const originalGetSourceFile = host.getSourceFile;
 	host.getSourceFile = (fileName: string, languageVersion: ts.ScriptTarget, onError?: (message: string) => void) => {
 		const storedValue = dtsFiles.get(host.getCanonicalFileName(fileName));
-		if (storedValue !== undefined) {
+		if (storedValue) {
 			return ts.createSourceFile(fileName, storedValue, languageVersion);
 		}
 
@@ -143,7 +143,7 @@ function createCachingCompilerHost(compilerOptions: ts.CompilerOptions): ts.Comp
 	): ts.SourceFile | undefined => {
 		const key = host.getCanonicalFileName(fileName);
 		let cacheValue = sourceFilesCache.get(key);
-		if (cacheValue === undefined) {
+		if (!cacheValue) {
 			cacheValue = originalGetSourceFile(fileName, languageVersion, onError);
 			sourceFilesCache.set(key, cacheValue);
 		}

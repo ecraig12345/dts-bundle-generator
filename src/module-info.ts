@@ -58,7 +58,7 @@ export function getReferencedModuleInfo(
 	typeChecker: ts.TypeChecker
 ): ModuleInfo | null {
 	const referencedModule = resolveReferencedModule(moduleDecl, typeChecker);
-	if (referencedModule === null) {
+	if (!referencedModule) {
 		return null;
 	}
 
@@ -98,8 +98,8 @@ function resolveModuleFileName(currentFileName: string, moduleName: string): str
  */
 function getModuleInfoImpl(currentFilePath: string, originalFileName: string, criteria: ModuleCriteria): ModuleInfo {
 	const npmLibraryName = getLibraryName(currentFilePath);
-	if (npmLibraryName === null) {
-		if (criteria.typeRoots !== undefined) {
+	if (!npmLibraryName) {
+		if (criteria.typeRoots) {
 			for (const root of criteria.typeRoots) {
 				const relativePath = fixPath(path.relative(root, originalFileName));
 				if (!relativePath.startsWith('../')) {
@@ -129,7 +129,7 @@ function getModuleInfoImpl(currentFilePath: string, originalFileName: string, cr
 		return { type: ModuleType.ShouldBeImported, fileName: originalFileName, isExternal: true };
 	}
 
-	if (typesLibraryName !== null && isLibraryAllowed(typesLibraryName, criteria.allowedTypesLibraries)) {
+	if (typesLibraryName && isLibraryAllowed(typesLibraryName, criteria.allowedTypesLibraries)) {
 		return {
 			type: ModuleType.ShouldBeReferencedAsTypes,
 			fileName: originalFileName,
@@ -148,7 +148,7 @@ function shouldLibraryBeInlined(
 ): boolean {
 	return (
 		isLibraryAllowed(npmLibraryName, inlinedLibraries)
-		|| (typesLibraryName !== null && isLibraryAllowed(typesLibraryName, inlinedLibraries))
+		|| (!!typesLibraryName && isLibraryAllowed(typesLibraryName, inlinedLibraries))
 	);
 }
 
@@ -158,14 +158,14 @@ function shouldLibraryBeImported(
 	importedLibraries: string[] | undefined,
 	allowedTypesLibraries: string[] | undefined
 ): boolean {
-	if (typesLibraryName === null) {
+	if (!typesLibraryName) {
 		return isLibraryAllowed(npmLibraryName, importedLibraries);
 	}
 
 	// to be imported a library from types shouldn't be allowed to be references as types
 	// thus by default we treat all libraries as "should be imported"
 	// but if it is a @types library then it should be imported only if it is not marked as "should be referenced as types" explicitly
-	if (allowedTypesLibraries === undefined || !isLibraryAllowed(typesLibraryName, allowedTypesLibraries)) {
+	if (!allowedTypesLibraries || !isLibraryAllowed(typesLibraryName, allowedTypesLibraries)) {
 		return isLibraryAllowed(typesLibraryName, importedLibraries);
 	}
 

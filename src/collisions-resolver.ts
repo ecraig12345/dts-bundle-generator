@@ -44,14 +44,14 @@ export class CollisionsResolver {
 	 */
 	public addTopLevelIdentifier(identifier: ts.Identifier | ts.DefaultKeyword): string {
 		const symbol = getDeclarationNameSymbol(identifier, this.typeChecker);
-		if (symbol === null) {
+		if (!symbol) {
 			throw new Error(
 				`Something went wrong - cannot find a symbol for top-level identifier ${identifier.getText()} (from ${identifier.parent.parent.getText()})`
 			);
 		}
 
 		const newLocalName = this.registerSymbol(symbol, identifier.getText());
-		if (newLocalName === null) {
+		if (!newLocalName) {
 			throw new Error(
 				`Something went wrong - a symbol ${symbol.name} for top-level identifier ${identifier.getText()} cannot be renamed`
 			);
@@ -76,7 +76,7 @@ export class CollisionsResolver {
 	 */
 	public resolveReferencedIdentifier(referencedIdentifier: ts.Identifier): string | null {
 		const identifierSymbol = getDeclarationNameSymbol(referencedIdentifier, this.typeChecker);
-		if (identifierSymbol === null) {
+		if (!identifierSymbol) {
 			// that's fine if an identifier doesn't have a symbol
 			// it could be in cases like for `prop` in `declare function func({ prop: prop3 }?: InterfaceName): TypeName;`
 			return null;
@@ -87,21 +87,17 @@ export class CollisionsResolver {
 		// this scope defines where the current identifier is located
 		const currentIdentifierScope = this.getNodeScope(referencedIdentifier);
 
-		if (
-			symbolScopePath.length > 0
-			&& currentIdentifierScope.length > 0
-			&& symbolScopePath[0] === currentIdentifierScope[0]
-		) {
+		if (symbolScopePath.length && currentIdentifierScope.length && symbolScopePath[0] === currentIdentifierScope[0]) {
 			// if a referenced symbol is declared in the same scope where it is located
 			// then just return its reference as is without any modification
 			// also note that in this method we're working with identifiers only (i.e. it cannot be a qualified name)
 			return referencedIdentifier.getText();
 		}
 
-		const topLevelIdentifierSymbol = symbolScopePath.length === 0 ? identifierSymbol : symbolScopePath[0];
+		const topLevelIdentifierSymbol = symbolScopePath[0] || identifierSymbol;
 
 		const namesForTopLevelSymbol = this.namesForSymbol(topLevelIdentifierSymbol);
-		if (namesForTopLevelSymbol.size === 0) {
+		if (!namesForTopLevelSymbol.size) {
 			return null;
 		}
 
@@ -161,7 +157,7 @@ export class CollisionsResolver {
 		}
 
 		const topLevelName = this.resolveReferencedIdentifier(topLevelIdentifier);
-		if (topLevelName === null) {
+		if (!topLevelName) {
 			// that's fine if we don't have a name for this top-level symbol
 			// it simply means that this symbol type might not be supported for renaming
 			// at this point the top-level identifier isn't registered yet
@@ -169,20 +165,16 @@ export class CollisionsResolver {
 			// it is possible in cases where you use `import * as nsName` for internal modules
 			// so `nsName.Interface` will be resolved to `Interface` (or any other name that `Interface` was registered with)
 			const identifierSymbol = getDeclarationNameSymbol(referencedIdentifier, this.typeChecker);
-			if (identifierSymbol === null) {
+			if (!identifierSymbol) {
 				// that's fine if an identifier doesn't have a symbol
 				// it could be in cases like for `prop` in `declare function func({ prop: prop3 }?: InterfaceName): TypeName;`
 				return null;
 			}
 
 			const namesForSymbol = this.namesForSymbol(identifierSymbol);
-			if (namesForSymbol.size !== 0) {
-				// if the set of already registered names contains the one that is requested then lets use it
-				return Array.from(namesForSymbol)[0];
-			}
-
-			// if it is not registered - just skip it
-			return null;
+			// if the set of already registered names contains the one that is requested then use it
+			// (otherwise skip it)
+			return Array.from(namesForSymbol)[0] || null;
 		}
 
 		// for nodes that we have to import we need to add an imported value to the collisions map
@@ -222,7 +214,7 @@ export class CollisionsResolver {
 		let currentNode: ts.Node = getClosestModuleLikeNode(node);
 		while (ts.isModuleDeclaration(currentNode) && ts.isIdentifier(currentNode.name)) {
 			const nameSymbol = getDeclarationNameSymbol(currentNode.name, this.typeChecker);
-			if (nameSymbol === null) {
+			if (!nameSymbol) {
 				throw new Error(`Cannot find symbol for identifier '${currentNode.name.getText()}'`);
 			}
 
@@ -259,13 +251,13 @@ export class CollisionsResolver {
 
 		const collisionsKey = symbolName;
 		let collisionSymbols = this.collisionsMap.get(collisionsKey);
-		if (collisionSymbols === undefined) {
+		if (!collisionSymbols) {
 			collisionSymbols = new Map();
 			this.collisionsMap.set(collisionsKey, collisionSymbols);
 		}
 
 		const storedSymbolName = collisionSymbols.get(identifierSymbol);
-		if (storedSymbolName !== undefined) {
+		if (storedSymbolName) {
 			return storedSymbolName;
 		}
 
@@ -273,7 +265,7 @@ export class CollisionsResolver {
 		let newName = collisionSymbols.size === 0 ? symbolName : `${symbolName}$${nameIndex}`;
 
 		let resolvedGlobalSymbol = resolveGlobalName(this.typeChecker, newName);
-		while (resolvedGlobalSymbol !== undefined && resolvedGlobalSymbol !== identifierSymbol) {
+		while (resolvedGlobalSymbol && resolvedGlobalSymbol !== identifierSymbol) {
 			nameIndex += 1;
 			newName = `${symbolName}$${nameIndex}`;
 			resolvedGlobalSymbol = resolveGlobalName(this.typeChecker, newName);
@@ -282,7 +274,7 @@ export class CollisionsResolver {
 		collisionSymbols.set(identifierSymbol, newName);
 
 		let symbolNames = this.generatedNames.get(identifierSymbol);
-		if (symbolNames === undefined) {
+		if (!symbolNames) {
 			symbolNames = new Set();
 			this.generatedNames.set(identifierSymbol, symbolNames);
 		}
