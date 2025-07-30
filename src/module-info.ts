@@ -44,10 +44,15 @@ export interface UsedForModulesModuleInfo extends UsedModuleInfoCommon {
 
 export type ModuleInfo = InlinedModuleInfo | ImportedModuleInfo | ReferencedModuleInfo | UsedForModulesModuleInfo;
 
+/**
+ * List or function for library names that are inlined/imported/allowed.
+ */
+export type LibraryOption = string[] | ((libraryName: string) => boolean);
+
 export interface ModuleCriteria {
-	inlinedLibraries: string[];
-	importedLibraries: string[] | undefined;
-	allowedTypesLibraries: string[] | undefined;
+	inlinedLibraries: LibraryOption;
+	importedLibraries: LibraryOption | undefined;
+	allowedTypesLibraries: LibraryOption | undefined;
 	typeRoots?: string[];
 }
 
@@ -120,15 +125,15 @@ function getModuleInfoImpl(currentFilePath: string, originalFileName: string, cr
 	return { type: ModuleType.ShouldBeUsedForModulesOnly, fileName: originalFileName, isExternal: true };
 }
 
-function shouldLibraryBeInlined(npmLibraryName: string, typesLibraryName: string | null, inlinedLibraries: string[]): boolean {
+function shouldLibraryBeInlined(npmLibraryName: string, typesLibraryName: string | null, inlinedLibraries: LibraryOption): boolean {
 	return isLibraryAllowed(npmLibraryName, inlinedLibraries) || typesLibraryName !== null && isLibraryAllowed(typesLibraryName, inlinedLibraries);
 }
 
 function shouldLibraryBeImported(
 	npmLibraryName: string,
 	typesLibraryName: string | null,
-	importedLibraries: string[] | undefined,
-	allowedTypesLibraries: string[] | undefined
+	importedLibraries: LibraryOption | undefined,
+	allowedTypesLibraries: LibraryOption | undefined
 ): boolean {
 	if (typesLibraryName === null) {
 		return isLibraryAllowed(npmLibraryName, importedLibraries);
@@ -144,8 +149,12 @@ function shouldLibraryBeImported(
 	return false;
 }
 
-function isLibraryAllowed(libraryName: string, allowedArray?: string[]): boolean {
-	return allowedArray === undefined || allowedArray.indexOf(libraryName) !== -1;
+function isLibraryAllowed(libraryName: string, allowed: LibraryOption | undefined): boolean {
+	return Array.isArray(allowed)
+		? allowed.includes(libraryName)
+		: typeof allowed === 'function'
+			? allowed(libraryName)
+			: true;
 }
 
 function remapToTypesFromNodeModules(pathRelativeToTypesRoot: string): string {

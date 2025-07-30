@@ -67,9 +67,9 @@ const configScheme: SchemeDescriptor<BundlerConfig> = {
 			failOnClass: schemaPrimitiveValues.boolean,
 			noCheck: schemaPrimitiveValues.boolean,
 			libraries: {
-				allowedTypesLibraries: [schemaPrimitiveValues.string],
-				importedLibraries: [schemaPrimitiveValues.string],
-				inlinedLibraries: [schemaPrimitiveValues.string],
+				allowedTypesLibraries: { oneOf: [schemaPrimitiveValues.function, [schemaPrimitiveValues.string]] },
+				importedLibraries: { oneOf: [schemaPrimitiveValues.function, [schemaPrimitiveValues.string]] },
+				inlinedLibraries: { oneOf: [schemaPrimitiveValues.function, [schemaPrimitiveValues.string]] },
 			},
 			output: {
 				inlineDeclareGlobals: schemaPrimitiveValues.boolean,
