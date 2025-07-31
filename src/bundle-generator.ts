@@ -94,6 +94,7 @@ export interface OutputOptions {
 	/**
 	 * By default all interfaces, types and const enums are marked as exported even if they aren't exported directly.
 	 * This option allows you to disable this behavior so a node will be exported if it is exported from root source file only.
+	 * @default true
 	 */
 	exportReferencedTypes?: boolean;
 }
@@ -103,20 +104,20 @@ export interface LibrariesOptions {
 	 * Array of package names from node_modules to inline typings from.
 	 * Used types will be inlined into the output file.
 	 */
-	inlinedLibraries?: string[];
+	inlinedLibraries?: (string | RegExp)[];
 
 	/**
 	 * Array of package names from node_modules to import typings from.
 	 * Used types will be imported using `import { First, Second } from 'library-name';`.
 	 * By default all libraries will be imported (except inlined libraries and libraries from `@types`).
 	 */
-	importedLibraries?: string[];
+	importedLibraries?: (string | RegExp)[];
 
 	/**
 	 * Array of package names from `@types` to import typings from via the triple-slash reference directive.
 	 * By default all packages are allowed and will be used according to their usages.
 	 */
-	allowedTypesLibraries?: string[];
+	allowedTypesLibraries?: (string | RegExp)[];
 }
 
 export interface EntryPointConfig {
