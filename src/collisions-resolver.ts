@@ -32,7 +32,16 @@ export interface ResolverIdentifier {
 export class CollisionsResolver {
 	private typeChecker: ts.TypeChecker;
 
-	private collisionsMap: Map<string, Map<ts.Symbol, string>> = new Map();
+	/**
+	 * Map from identifier name => source path => symbol => generated name.
+	 */
+	private collisionsMap: Map<
+		string,
+		{
+			byImportPath: Map<string | null, Map<ts.Symbol, string>>;
+			count: number;
+		}
+	> = new Map();
 	private generatedNames: Map<ts.Symbol, Set<string>> = new Map();
 
 	public constructor(typeChecker: ts.TypeChecker) {
@@ -41,8 +50,12 @@ export class CollisionsResolver {
 
 	/**
 	 * Adds (or "registers") a top-level {@link identifier} (which takes a top-level scope name to use).
+	 * @param importPath
 	 */
-	public addTopLevelIdentifier(identifier: ts.Identifier | ts.DefaultKeyword | ts.ModuleExportName): string {
+	public addTopLevelIdentifier(
+		identifier: ts.Identifier | ts.DefaultKeyword | ts.ModuleExportName,
+		importPath: string | null
+	): string {
 		const symbol = getDeclarationNameSymbol(identifier, this.typeChecker);
 		if (!symbol) {
 			throw new Error(
@@ -50,7 +63,7 @@ export class CollisionsResolver {
 			);
 		}
 
-		const newLocalName = this.registerSymbol(symbol, identifier.getText());
+		const newLocalName = this.registerSymbol(symbol, identifier.getText(), importPath);
 		if (!newLocalName) {
 			throw new Error(
 				`Something went wrong - a symbol ${symbol.name} for top-level identifier ${identifier.getText()} cannot be renamed`
@@ -225,7 +238,11 @@ export class CollisionsResolver {
 		return scopeIdentifiersPath.reverse();
 	}
 
-	private registerSymbol(identifierSymbol: ts.Symbol, preferredName: string): string | null {
+	private registerSymbol(
+		identifierSymbol: ts.Symbol,
+		preferredName: string,
+		importedFrom: string | null
+	): string | null {
 		if (!renamingSupportedSymbols.some((flag: ts.SymbolFlags) => identifierSymbol.flags & flag)) {
 			// if a symbol for something else that we don't support yet - skip
 			verboseLog(
@@ -252,17 +269,26 @@ export class CollisionsResolver {
 		const collisionsKey = symbolName;
 		let collisionSymbols = this.collisionsMap.get(collisionsKey);
 		if (!collisionSymbols) {
-			collisionSymbols = new Map();
+			collisionSymbols = {
+				byImportPath: new Map(),
+				count: 0,
+			};
 			this.collisionsMap.set(collisionsKey, collisionSymbols);
 		}
 
-		const storedSymbolName = collisionSymbols.get(identifierSymbol);
+		let symbolsForPath = collisionSymbols.byImportPath.get(importedFrom);
+		if (!symbolsForPath) {
+			symbolsForPath = new Map();
+			collisionSymbols.byImportPath.set(importedFrom, symbolsForPath);
+		}
+
+		const storedSymbolName = symbolsForPath.get(identifierSymbol);
 		if (storedSymbolName) {
 			return storedSymbolName;
 		}
 
-		let nameIndex = collisionSymbols.size;
-		let newName = collisionSymbols.size === 0 ? symbolName : `${symbolName}$${nameIndex}`;
+		let nameIndex = collisionSymbols.count++;
+		let newName = nameIndex === 0 ? symbolName : `${symbolName}$${nameIndex}`;
 
 		let resolvedGlobalSymbol = resolveGlobalName(this.typeChecker, newName);
 		while (resolvedGlobalSymbol && resolvedGlobalSymbol !== identifierSymbol) {
@@ -271,7 +297,7 @@ export class CollisionsResolver {
 			resolvedGlobalSymbol = resolveGlobalName(this.typeChecker, newName);
 		}
 
-		collisionSymbols.set(identifierSymbol, newName);
+		symbolsForPath.set(identifierSymbol, newName);
 
 		let symbolNames = this.generatedNames.get(identifierSymbol);
 		if (!symbolNames) {

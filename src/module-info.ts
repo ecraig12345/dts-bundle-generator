@@ -119,18 +119,12 @@ function getModuleInfoImpl(currentFilePath: string, originalFileName: string, cr
 	}
 
 	const typesLibraryName = getTypesLibraryName(currentFilePath);
+
 	if (shouldLibraryBeInlined(npmLibraryName, typesLibraryName, criteria.inlinedLibraries)) {
 		return { type: ModuleType.ShouldBeInlined, fileName: originalFileName, isExternal: true };
 	}
 
-	if (
-		shouldLibraryBeImported(
-			npmLibraryName,
-			typesLibraryName,
-			criteria.importedLibraries,
-			criteria.allowedTypesLibraries
-		)
-	) {
+	if (shouldLibraryBeImported(npmLibraryName, typesLibraryName, criteria)) {
 		return { type: ModuleType.ShouldBeImported, fileName: originalFileName, isExternal: true };
 	}
 
@@ -160,9 +154,10 @@ function shouldLibraryBeInlined(
 function shouldLibraryBeImported(
 	npmLibraryName: string,
 	typesLibraryName: string | null,
-	importedLibraries: LibraryOption | undefined,
-	allowedTypesLibraries: LibraryOption | undefined
+	criteria: Pick<ModuleCriteria, 'importedLibraries' | 'allowedTypesLibraries'>
 ): boolean {
+	const { importedLibraries, allowedTypesLibraries } = criteria;
+
 	if (!typesLibraryName) {
 		return isLibraryAllowed(npmLibraryName, importedLibraries);
 	}

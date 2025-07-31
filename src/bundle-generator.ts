@@ -334,11 +334,11 @@ export function generateDtsBundle(entries: readonly EntryPointConfig[], options:
 							if (ts.isVariableStatement(statement)) {
 								for (const variableDeclaration of statement.declarationList.declarations) {
 									if (ts.isIdentifier(variableDeclaration.name)) {
-										collisionsResolver.addTopLevelIdentifier(variableDeclaration.name);
+										collisionsResolver.addTopLevelIdentifier(variableDeclaration.name, null);
 									} else {
 										for (const element of variableDeclaration.name.elements) {
 											if (!ts.isOmittedExpression(element) && ts.isIdentifier(element.name)) {
-												collisionsResolver.addTopLevelIdentifier(element.name);
+												collisionsResolver.addTopLevelIdentifier(element.name, null);
 											}
 										}
 									}
@@ -346,7 +346,7 @@ export function generateDtsBundle(entries: readonly EntryPointConfig[], options:
 							} else if (isNodeNamedDeclaration(statement)) {
 								const statementName = getNodeName(statement);
 								if (statementName) {
-									collisionsResolver.addTopLevelIdentifier(statementName as ts.Identifier | ts.DefaultKeyword);
+									collisionsResolver.addTopLevelIdentifier(statementName as ts.Identifier | ts.DefaultKeyword, null);
 								}
 							}
 
@@ -507,7 +507,11 @@ export function generateDtsBundle(entries: readonly EntryPointConfig[], options:
 								);
 							}
 
-							addNsImport(getImportItem(importModuleSpecifier), namespaceImportFromImportableModule.name);
+							addNsImport(
+								importModuleSpecifier,
+								getImportItem(importModuleSpecifier),
+								namespaceImportFromImportableModule.name
+							);
 						}
 					}
 				} else {
@@ -658,16 +662,23 @@ export function generateDtsBundle(entries: readonly EntryPointConfig[], options:
 			return importItem;
 		}
 
-		function addRequireImport(importItem: ModuleImportsSet, preferredLocalName: ts.Identifier): void {
-			importItem.requireImports.add(collisionsResolver.addTopLevelIdentifier(preferredLocalName));
+		function addRequireImport(
+			importModuleSpecifier: string,
+			importItem: ModuleImportsSet,
+			preferredLocalName: ts.Identifier
+		): void {
+			importItem.requireImports.add(
+				collisionsResolver.addTopLevelIdentifier(preferredLocalName, importModuleSpecifier)
+			);
 		}
 
 		function addNamedImport(
+			importModuleSpecifier: string,
 			importItem: ModuleImportsSet,
 			preferredLocalName: ts.ModuleExportName,
 			importedIdentifier: ts.ModuleExportName
 		): void {
-			const newLocalName = collisionsResolver.addTopLevelIdentifier(preferredLocalName);
+			const newLocalName = collisionsResolver.addTopLevelIdentifier(preferredLocalName, importModuleSpecifier);
 			const importedName = importedIdentifier.text;
 			importItem.namedImports.set(newLocalName, importedName);
 		}
@@ -677,14 +688,24 @@ export function generateDtsBundle(entries: readonly EntryPointConfig[], options:
 			importItem.reExports.set(reExportedName, moduleExportedName);
 		}
 
-		function addNsImport(importItem: ModuleImportsSet, preferredLocalName: ts.ModuleExportName): void {
+		function addNsImport(
+			importModuleSpecifier: string,
+			importItem: ModuleImportsSet,
+			preferredLocalName: ts.ModuleExportName
+		): void {
 			if (!importItem.nsImport) {
-				importItem.nsImport = collisionsResolver.addTopLevelIdentifier(preferredLocalName);
+				importItem.nsImport = collisionsResolver.addTopLevelIdentifier(preferredLocalName, importModuleSpecifier);
 			}
 		}
 
-		function addDefaultImport(importItem: ModuleImportsSet, preferredLocalName: ts.Identifier): void {
-			importItem.defaultImports.add(collisionsResolver.addTopLevelIdentifier(preferredLocalName));
+		function addDefaultImport(
+			importModuleSpecifier: string,
+			importItem: ModuleImportsSet,
+			preferredLocalName: ts.Identifier
+		): void {
+			importItem.defaultImports.add(
+				collisionsResolver.addTopLevelIdentifier(preferredLocalName, importModuleSpecifier)
+			);
 		}
 
 		function addImport(statement: ts.DeclarationStatement | ts.SourceFile): void {
@@ -700,22 +721,22 @@ export function generateDtsBundle(entries: readonly EntryPointConfig[], options:
 
 					if (ts.isImportEqualsDeclaration(imp)) {
 						// import x = require("mod");
-						addRequireImport(importItem, imp.name);
+						addRequireImport(importModuleSpecifier, importItem, imp.name);
 					} else if (ts.isExportSpecifier(imp)) {
 						// export { El1, El2 as ExportedName } from 'module';
-						addNamedImport(importItem, imp.name, imp.propertyName || imp.name);
+						addNamedImport(importModuleSpecifier, importItem, imp.name, imp.propertyName || imp.name);
 					} else if (ts.isNamespaceExport(imp)) {
 						// export * as name from 'module';
-						addNsImport(importItem, imp.name);
+						addNsImport(importModuleSpecifier, importItem, imp.name);
 					} else if (ts.isImportClause(imp) && imp.name !== undefined) {
 						// import name from 'module';
-						addDefaultImport(importItem, imp.name);
+						addDefaultImport(importModuleSpecifier, importItem, imp.name);
 					} else if (ts.isImportSpecifier(imp)) {
 						// import { El1, El2 as ImportedName } from 'module';
-						addNamedImport(importItem, imp.name, imp.propertyName || imp.name);
+						addNamedImport(importModuleSpecifier, importItem, imp.name, imp.propertyName || imp.name);
 					} else if (ts.isNamespaceImport(imp)) {
 						// import * as name from 'module';
-						addNsImport(importItem, imp.name);
+						addNsImport(importModuleSpecifier, importItem, imp.name);
 					}
 				}
 			);
@@ -1139,7 +1160,7 @@ export function generateDtsBundle(entries: readonly EntryPointConfig[], options:
 			exports.forEach(processExportSymbol.bind(null, namespaceExports));
 
 			if (namespaceExports.size !== 0) {
-				const namespaceLocalName = collisionsResolver.addTopLevelIdentifier(namespaceNameIdentifier);
+				const namespaceLocalName = collisionsResolver.addTopLevelIdentifier(namespaceNameIdentifier, null);
 				collectionResult.wrappedNamespaces.set(namespaceLocalName, namespaceExports);
 				return namespaceLocalName;
 			}
