@@ -26,7 +26,8 @@
 				"ts,js",
 				"${file}"
 			],
-			"internalConsoleOptions": "openOnSessionStart"
+      "runtimeVersion": "20",
+			"console": "integratedTerminal"
 		},
 		{
 			"type": "node",
